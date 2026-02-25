@@ -1,63 +1,50 @@
+// src/components/Sidebar.tsx
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
-  Shield,
-  LayoutDashboard,
-  Users,
-  Building2,
-  UserCog,
-  Calendar,
-  AlertTriangle,
-  MapPin,
-  Video,
-  Plane,
-  Package,
-  CreditCard,
-  BarChart3,
-  Globe,
-  Bell,
-  ChevronLeft,
-  ChevronRight,
-  Settings,
-  LogOut,
+  Shield, LayoutDashboard, Users, Building2, UserCog, Calendar,
+  AlertTriangle, MapPin, Video, Plane, Package, CreditCard,
+  BarChart3, Globe, Bell, ChevronLeft, ChevronRight, Settings, LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useBadges } from "@/context/BadgeContext"; // ← shared context, no extra fetch
 
 interface NavItem {
   icon: React.ElementType;
   label: string;
   href: string;
-  badge?: number;
+  badgeKey?: "notifications" | "incidents";
 }
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/" },
-  { icon: Users, label: "User & Roles", href: "/users" },
-  { icon: Building2, label: "Clients & Contracts", href: "/clients" },
-  { icon: UserCog, label: "Personnel", href: "/personnel" },
-  { icon: Calendar, label: "Scheduling", href: "/scheduling" },
-  { icon: AlertTriangle, label: "Incidents", href: "/incidents", badge: 3 },
-  { icon: MapPin, label: "Patrol & GPS", href: "/patrol" },
-  { icon: Video, label: "CCTV & Alarms", href: "/cctv" },
-  { icon: Plane, label: "Drone Ops", href: "/drones" },
-  { icon: Package, label: "Inventory", href: "/inventory" },
-  { icon: CreditCard, label: "Billing & Payroll", href: "/billing" },
-  { icon: BarChart3, label: "Reports", href: "/reports" },
-  { icon: Globe, label: "Client Portal", href: "/portal" },
-  { icon: Bell, label: "Notifications", href: "/notifications", badge: 12 },
+  { icon: LayoutDashboard, label: "Dashboard",           href: "/" },
+  { icon: Users,           label: "User & Roles",        href: "/users" },
+  { icon: Building2,       label: "Clients & Contracts", href: "/clients" },
+  { icon: UserCog,         label: "Personnel",           href: "/personnel" },
+  { icon: Calendar,        label: "Scheduling",          href: "/scheduling" },
+  { icon: AlertTriangle,   label: "Incidents",           href: "/incidents",     badgeKey: "incidents" },
+  { icon: MapPin,          label: "Patrol & GPS",        href: "/patrol" },
+  { icon: Video,           label: "CCTV & Alarms",       href: "/cctv" },
+  { icon: Plane,           label: "Drone Ops",           href: "/drones" },
+  { icon: Package,         label: "Inventory",           href: "/inventory" },
+  { icon: CreditCard,      label: "Billing & Payroll",   href: "/billing" },
+  { icon: BarChart3,       label: "Reports",             href: "/reports" },
+  { icon: Globe,           label: "Client Portal",       href: "/portal" },
+  { icon: Bell,            label: "Notifications",       href: "/notifications", badgeKey: "notifications" },
 ];
 
 export const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const location = useLocation();
-  const navigate = useNavigate();
+  const { badges } = useBadges(); // no fetch here — BadgeProvider handles it once
+  const location   = useLocation();
+  const navigate   = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    navigate('/login');
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
+    navigate("/login");
   };
 
   return (
@@ -87,55 +74,45 @@ export const Sidebar = () => {
           onClick={() => setCollapsed(!collapsed)}
           className="text-muted-foreground hover:text-foreground"
         >
-          {collapsed ? (
-            <ChevronRight className="w-4 h-4" />
-          ) : (
-            <ChevronLeft className="w-4 h-4" />
-          )}
+          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </Button>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
-          const Icon = item.icon;
+          const Icon     = item.icon;
           const isActive = location.pathname === item.href;
+          const count    = item.badgeKey ? badges[item.badgeKey] : 0;
 
           return (
             <Link
               key={item.href}
               to={item.href}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative",
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 relative",
                 isActive
                   ? "bg-primary/10 text-primary border border-primary/20"
                   : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground"
               )}
             >
-              <Icon
-                className={cn(
-                  "w-5 h-5 flex-shrink-0",
-                  isActive && "text-primary"
-                )}
-              />
+              <Icon className={cn("w-5 h-5 flex-shrink-0", isActive && "text-primary")} />
 
               {!collapsed && (
                 <>
-                  <span className="text-sm font-medium truncate">
-                    {item.label}
-                  </span>
-
-                  {item.badge && (
+                  <span className="text-sm font-medium truncate">{item.label}</span>
+                  {count > 0 && (
                     <span className="ml-auto bg-destructive text-destructive-foreground text-xs font-bold px-2 py-0.5 rounded-full">
-                      {item.badge}
+                      {count > 99 ? "99+" : count}
                     </span>
                   )}
                 </>
               )}
 
-              {collapsed && item.badge && (
+              {/* Collapsed badge dot */}
+              {collapsed && count > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs font-bold rounded-full flex items-center justify-center">
-                  {item.badge}
+                  {count > 9 ? "9+" : count}
                 </span>
               )}
 
@@ -150,9 +127,8 @@ export const Sidebar = () => {
       {/* Footer */}
       <div className="p-3 border-t border-sidebar-border space-y-1">
         <button
-          className={cn(
-            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground"
-          )}
+          onClick={() => navigate("/settings")}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground"
         >
           <Settings className="w-5 h-5" />
           {!collapsed && <span className="text-sm font-medium">Settings</span>}
@@ -160,9 +136,7 @@ export const Sidebar = () => {
 
         <button
           onClick={handleLogout}
-          className={cn(
-            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-destructive hover:bg-destructive/10"
-          )}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-destructive hover:bg-destructive/10"
         >
           <LogOut className="w-5 h-5" />
           {!collapsed && <span className="text-sm font-medium">Logout</span>}

@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import BillingPage from "./Page/Billing/Billing";
-import CctvPage from "./Page/Cctv/Cctv"; // Fix: was incorrectly importing Cctv icon from lucide-react
+import CCTVAlarms from "./Page/CCTV/CCTVAlarms";
 import ClientsPage from "./Page/Clients/Clients";
 import DronesPage from "./Page/Drones/Drones";
 import IncidentsPage from "./Page/Incidents/Incidents";
@@ -22,6 +22,7 @@ import Layout from "./components/Layout";
 import { Login } from "./Page/Auth/Login";
 import { Register } from "./Page/Auth/Register";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import SettingsPage from "./Page/Settings/Settings";
 
 const queryClient = new QueryClient();
 
@@ -41,7 +42,7 @@ const App = () => (
             <Route element={<Layout />}>
               <Route path="/" element={<Index />} />
               <Route path="/billing" element={<BillingPage />} />
-              <Route path="/cctv" element={<CctvPage />} />
+              <Route path="/cctv" element={<CCTVAlarms />} />
               <Route path="/clients" element={<ClientsPage />} />
               <Route path="/drones" element={<DronesPage />} />
               <Route path="/incidents" element={<IncidentsPage />} />
@@ -53,6 +54,7 @@ const App = () => (
               <Route path="/scheduling" element={<SchedulingPage />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/settings"     element={<SettingsPage />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Route>

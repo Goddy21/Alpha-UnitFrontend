@@ -1,34 +1,92 @@
-import { 
-  AlertTriangle, 
-  Plus, 
-  UserPlus, 
-  FileText, 
-  Radio, 
-  Video 
-} from "lucide-react";
+import { AlertTriangle, Plus, UserPlus, FileText, Radio, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const actions = [
-  { icon: AlertTriangle, label: "Report Incident", variant: "destructive" as const },
-  { icon: Plus, label: "New Deployment", variant: "default" as const },
-  { icon: UserPlus, label: "Add Personnel", variant: "outline" as const },
-  { icon: FileText, label: "Generate Report", variant: "outline" as const },
-  { icon: Radio, label: "Broadcast Alert", variant: "warning" as const },
-  { icon: Video, label: "View Live Feeds", variant: "tactical" as const },
-];
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import api from "@/lib/api";
 
 export const QuickActions = () => {
+  const navigate  = useNavigate();
+  const { toast } = useToast();
+
+  // ── handlers ────────────────────────────────────────────────────────────────
+
+  const reportIncident = async () => {
+    // Navigate to incidents page with a "new" flag so the form auto-opens
+    navigate("/incidents?action=new");
+  };
+
+  const newDeployment = async () => {
+    navigate("/shifts?action=new");
+  };
+
+  const addPersonnel = async () => {
+    navigate("/personnel?action=new");
+  };
+
+  const generateReport = async () => {
+    try {
+      const res = await api.post("/reports", {
+        type: "incident-summary",
+        from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // last 30 days
+        to:   new Date().toISOString(),
+      });
+      if (res.data.success) {
+        toast({ title: "Report generated", description: "Your report is ready." });
+        navigate("/reports");
+      }
+    } catch {
+      // Fall back to just navigating to reports
+      navigate("/reports");
+    }
+  };
+
+  const broadcastAlert = async () => {
+    try {
+      await api.post("/notifications", {
+        type:             "alert",
+        title:            "Security Alert",
+        message:          "Security alert broadcast from dashboard",
+        priority:         "high",
+        recipient_type:   "all",
+        action_required:  true,
+      });
+      toast({ title: "Alert broadcast", description: "All personnel notified." });
+    } catch (err: any) {
+      toast({
+        title: "Broadcast failed",
+        description: err.response?.data?.message ?? err.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const viewLiveFeeds = () => {
+    navigate("/cctv");
+  };
+
+  // ── action config ────────────────────────────────────────────────────────────
+
+  const actions = [
+    { icon: AlertTriangle, label: "Report Incident", variant: "destructive" as const, onClick: reportIncident },
+    { icon: Plus,          label: "New Deployment",  variant: "default"     as const, onClick: newDeployment },
+    { icon: UserPlus,      label: "Add Personnel",   variant: "outline"     as const, onClick: addPersonnel },
+    { icon: FileText,      label: "Generate Report", variant: "outline"     as const, onClick: generateReport },
+    { icon: Radio,         label: "Broadcast Alert", variant: "outline"     as const, onClick: broadcastAlert },
+    { icon: Video,         label: "View Live Feeds", variant: "outline"     as const, onClick: viewLiveFeeds },
+  ];
+
   return (
     <div className="glass-card rounded-xl border border-border/50 p-5">
       <h3 className="font-semibold text-foreground mb-4">Quick Actions</h3>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {actions.map((action, idx) => {
+        {actions.map((action) => {
           const Icon = action.icon;
           return (
-            <Button 
-              key={idx} 
-              variant={action.variant} 
+            <Button
+              key={action.label}
+              variant={action.variant}
               className="h-auto py-3 flex-col gap-2"
+              onClick={action.onClick}
             >
               <Icon className="w-5 h-5" />
               <span className="text-xs">{action.label}</span>

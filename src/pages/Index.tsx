@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { StatCard } from "@/components/dashboard/StatCard";
-import { IncidentCard } from "@/components/dashboard/IncidentCard";
+import IncidentCard from "@/components/dashboard/IncidentCard";
 import { PersonnelStatus } from "@/components/dashboard/PersonnelStatus";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { QuickActions } from "@/components/dashboard/QuickActions";

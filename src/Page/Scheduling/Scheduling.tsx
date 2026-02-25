@@ -189,16 +189,16 @@ export const SchedulingPage = () => {
 
   const fetchSiteOptions = async () => {
     try {
-      // GET /sites should exist — fetch all active sites
-      const response = await api.get("/sites", { params: { limit: 200 } });
-      // Response shape may vary; handle both data.sites and data.data.sites
-      const raw =
-        response.data?.data?.sites || response.data?.sites || response.data?.data || [];
+      const response = await api.get("/sites", { params: { limit: 200, status: "active" } });
+      const raw: any[] = response.data?.data?.sites
+        ?? response.data?.data       
+        ?? response.data?.sites      
+        ?? [];
       setSiteOptions(
         raw.map((s: any) => ({
           id: s.id,
           name: s.name,
-          site_code: s.site_code || "",
+          site_code: s.site_code || s.siteCode || "",
         }))
       );
     } catch (error) {
