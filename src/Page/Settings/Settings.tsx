@@ -5,7 +5,8 @@ import {
   Save, Eye, EyeOff, Upload, Loader2, CheckCircle,
   AlertTriangle, Monitor, Moon, Sun, Smartphone,
   Mail, MessageSquare, Volume2, Building2, Clock,
-  Key, RefreshCw, Trash2, LogOut, ChevronRight,
+  Key, RefreshCw, Trash2, LogOut, ChevronRight, X,
+  Menu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,62 +21,72 @@ import api from "@/lib/api";
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface UserProfile {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  role: string;
-  avatar?: string;
-  department?: string;
-  employee_id?: string;
-  timezone?: string;
-  language?: string;
+  id: string; name: string; email: string; phone?: string;
+  role: string; avatar?: string; department?: string;
+  employee_id?: string; timezone?: string; language?: string;
 }
 
 interface SystemSettings {
-  company_name: string;
-  company_email: string;
-  company_phone: string;
-  company_address: string;
-  session_timeout: number;
-  max_login_attempts: number;
-  password_expiry_days: number;
-  two_factor_enabled: boolean;
-  audit_log_retention: number;
-  timezone: string;
-  date_format: string;
-  currency: string;
+  company_name: string; company_email: string; company_phone: string;
+  company_address: string; session_timeout: number; max_login_attempts: number;
+  password_expiry_days: number; two_factor_enabled: boolean;
+  audit_log_retention: number; timezone: string; date_format: string; currency: string;
 }
 
 interface NotificationPrefs {
-  email_incidents: boolean;
-  email_system: boolean;
-  email_reports: boolean;
-  push_incidents: boolean;
-  push_alerts: boolean;
-  sms_critical: boolean;
+  email_incidents: boolean; email_system: boolean; email_reports: boolean;
+  push_incidents: boolean; push_alerts: boolean; sms_critical: boolean;
   digest_frequency: string;
 }
 
 // ── Tabs config ───────────────────────────────────────────────────────────────
 
 const tabs = [
-  { id: "profile",       label: "Profile",        icon: User },
-  { id: "security",      label: "Security",       icon: Lock },
-  { id: "notifications", label: "Notifications",  icon: Bell },
-  { id: "system",        label: "System",         icon: Building2 },
-  { id: "appearance",    label: "Appearance",     icon: Palette },
-  { id: "sessions",      label: "Sessions",       icon: Monitor },
+  { id: "profile",       label: "Profile",       icon: User },
+  { id: "security",      label: "Security",      icon: Lock },
+  { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "system",        label: "System",        icon: Building2 },
+  { id: "appearance",    label: "Appearance",    icon: Palette },
+  { id: "sessions",      label: "Sessions",      icon: Monitor },
 ] as const;
 
 type TabId = typeof tabs[number]["id"];
 
+// ── Confirm Modal ─────────────────────────────────────────────────────────────
+
+function ConfirmModal({ open, title, description, confirmLabel = "Confirm", confirmVariant = "destructive", onConfirm, onCancel }: {
+  open: boolean; title: string; description: string;
+  confirmLabel?: string; confirmVariant?: "destructive" | "default";
+  onConfirm: () => void; onCancel: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative z-10 w-full max-w-sm rounded-xl bg-background border border-border shadow-xl p-6 flex flex-col gap-4">
+        <div className="flex items-start justify-between gap-2">
+          <h2 className="text-base font-semibold text-foreground">{title}</h2>
+          <button onClick={onCancel} className="text-muted-foreground hover:text-foreground transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <p className="text-sm text-muted-foreground">{description}</p>
+        <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+          <Button variant="outline" onClick={onCancel} className="w-full sm:w-auto">Cancel</Button>
+          <Button variant={confirmVariant} onClick={onConfirm} className="w-full sm:w-auto">{confirmLabel}</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Toggle switch ─────────────────────────────────────────────────────────────
-const Toggle = ({
-  checked, onChange, label, description,
-}: { checked: boolean; onChange: (v: boolean) => void; label: string; description?: string }) => (
-  <div className="flex items-center justify-between py-3">
-    <div className="flex-1 mr-4">
+
+const Toggle = ({ checked, onChange, label, description }: {
+  checked: boolean; onChange: (v: boolean) => void; label: string; description?: string;
+}) => (
+  <div className="flex items-center justify-between py-3 gap-4">
+    <div className="flex-1 min-w-0">
       <p className="text-sm font-medium text-foreground">{label}</p>
       {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
     </div>
@@ -95,12 +106,13 @@ const Toggle = ({
 );
 
 // ── Section wrapper ───────────────────────────────────────────────────────────
+
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <div className="glass-card rounded-xl border border-border/50 overflow-hidden mb-6">
-    <div className="px-6 py-4 border-b border-border/50 bg-secondary/20">
-      <h3 className="font-semibold text-foreground text-sm tracking-wide uppercase">{title}</h3>
+  <div className="glass-card rounded-xl border border-border/50 overflow-hidden mb-4 sm:mb-6">
+    <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-border/50 bg-secondary/20">
+      <h3 className="font-semibold text-foreground text-xs sm:text-sm tracking-wide uppercase">{title}</h3>
     </div>
-    <div className="px-6 py-5">{children}</div>
+    <div className="px-4 sm:px-6 py-4 sm:py-5">{children}</div>
   </div>
 );
 
@@ -108,9 +120,14 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
 
 export const SettingsPage = () => {
   const { toast } = useToast();
-  const [activeTab, setActiveTab]   = useState<TabId>("profile");
-  const [saving, setSaving]         = useState(false);
-  const [loading, setLoading]       = useState(true);
+  const [activeTab,   setActiveTab]   = useState<TabId>("profile");
+  const [saving,      setSaving]      = useState(false);
+  const [loading,     setLoading]     = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // confirm modals
+  const [revokeTarget,    setRevokeTarget]    = useState<string | null>(null);
+  const [revokeAllOpen,   setRevokeAllOpen]   = useState(false);
 
   // Profile
   const [profile, setProfile] = useState<UserProfile>({
@@ -119,42 +136,31 @@ export const SettingsPage = () => {
   });
 
   // Password
-  const [pwForm, setPwForm]         = useState({ current: "", next: "", confirm: "" });
-  const [showPw, setShowPw]         = useState({ current: false, next: false, confirm: false });
+  const [pwForm,     setPwForm]     = useState({ current: "", next: "", confirm: "" });
+  const [showPw,     setShowPw]     = useState({ current: false, next: false, confirm: false });
   const [pwStrength, setPwStrength] = useState(0);
 
-  // System (admin only)
+  // System
   const [system, setSystem] = useState<SystemSettings>({
-    company_name: "ISMS Security",
-    company_email: "",
-    company_phone: "",
-    company_address: "",
-    session_timeout: 60,
-    max_login_attempts: 5,
-    password_expiry_days: 90,
-    two_factor_enabled: false,
-    audit_log_retention: 365,
-    timezone: "Africa/Nairobi",
-    date_format: "DD/MM/YYYY",
-    currency: "KES",
+    company_name: "ISMS Security", company_email: "", company_phone: "",
+    company_address: "", session_timeout: 60, max_login_attempts: 5,
+    password_expiry_days: 90, two_factor_enabled: false,
+    audit_log_retention: 365, timezone: "Africa/Nairobi",
+    date_format: "DD/MM/YYYY", currency: "KES",
   });
 
   // Notifications
   const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs>({
-    email_incidents: true,
-    email_system: true,
-    email_reports: false,
-    push_incidents: true,
-    push_alerts: true,
-    sms_critical: false,
+    email_incidents: true, email_system: true, email_reports: false,
+    push_incidents: true, push_alerts: true, sms_critical: false,
     digest_frequency: "daily",
   });
 
   // Appearance
-  const [theme, setTheme]     = useState("dark");
+  const [theme,   setTheme]   = useState("dark");
   const [density, setDensity] = useState("comfortable");
 
-  // Sessions (read-only list)
+  // Sessions
   const [sessions, setSessions] = useState<any[]>([]);
 
   // ── Load ──────────────────────────────────────────────────────────────────
@@ -163,46 +169,36 @@ export const SettingsPage = () => {
     const load = async () => {
       setLoading(true);
       try {
-        // Load logged-in user from localStorage first (fast)
         const stored = localStorage.getItem("user");
-        if (stored) {
-          const u = JSON.parse(stored);
-          setProfile(prev => ({ ...prev, ...u }));
-        }
+        if (stored) setProfile(prev => ({ ...prev, ...JSON.parse(stored) }));
 
-        // Then fetch fresh profile from API
         const [profileRes, settingsRes] = await Promise.allSettled([
           api.get("/users/profile"),
           api.get("/settings"),
         ]);
 
-        if (profileRes.status === "fulfilled" && profileRes.value.data.success) {
+        if (profileRes.status === "fulfilled" && profileRes.value.data.success)
           setProfile(profileRes.value.data.data);
-        }
         if (settingsRes.status === "fulfilled" && settingsRes.value.data.success) {
           const d = settingsRes.value.data.data;
           if (d.system)        setSystem(s => ({ ...s, ...d.system }));
           if (d.notifications) setNotifPrefs(n => ({ ...n, ...d.notifications }));
           if (d.appearance)    { setTheme(d.appearance.theme || "dark"); setDensity(d.appearance.density || "comfortable"); }
         }
-      } catch {
-        // fallback to localStorage values already set
-      } finally {
-        setLoading(false);
-      }
+      } catch {}
+      finally { setLoading(false); }
     };
     load();
   }, []);
 
-  // Password strength meter
   useEffect(() => {
     const p = pwForm.next;
     let s = 0;
-    if (p.length >= 8)                  s++;
-    if (/[A-Z]/.test(p))               s++;
-    if (/[0-9]/.test(p))               s++;
-    if (/[^A-Za-z0-9]/.test(p))        s++;
-    if (p.length >= 12)                 s++;
+    if (p.length >= 8)           s++;
+    if (/[A-Z]/.test(p))         s++;
+    if (/[0-9]/.test(p))         s++;
+    if (/[^A-Za-z0-9]/.test(p))  s++;
+    if (p.length >= 12)           s++;
     setPwStrength(s);
   }, [pwForm.next]);
 
@@ -211,77 +207,48 @@ export const SettingsPage = () => {
   const saveProfile = async () => {
     setSaving(true);
     try {
-      await api.put("/users/profile", {
-        name:       profile.name,
-        phone:      profile.phone,
-        department: profile.department,
-        timezone:   profile.timezone,
-        language:   profile.language,
-      });
-      // Update localStorage
+      await api.put("/users/profile", { name: profile.name, phone: profile.phone, department: profile.department, timezone: profile.timezone, language: profile.language });
       const stored = localStorage.getItem("user");
-      if (stored) {
-        localStorage.setItem("user", JSON.stringify({ ...JSON.parse(stored), name: profile.name, email: profile.email }));
-      }
+      if (stored) localStorage.setItem("user", JSON.stringify({ ...JSON.parse(stored), name: profile.name, email: profile.email }));
       toast({ title: "Profile saved", description: "Your profile has been updated." });
     } catch (e: any) {
       toast({ title: "Save failed", description: e.response?.data?.message ?? e.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   const changePassword = async () => {
     if (!pwForm.current || !pwForm.next) return toast({ title: "Fill all fields", variant: "destructive" });
     if (pwForm.next !== pwForm.confirm)  return toast({ title: "Passwords don't match", variant: "destructive" });
     if (pwStrength < 3)                  return toast({ title: "Password too weak", description: "Use 8+ chars with uppercase, number and symbol.", variant: "destructive" });
-
     setSaving(true);
     try {
       await api.put("/users/password", { currentPassword: pwForm.current, newPassword: pwForm.next });
       setPwForm({ current: "", next: "", confirm: "" });
-      toast({ title: "Password changed", description: "You'll need to use the new password next login." });
+      toast({ title: "Password changed" });
     } catch (e: any) {
       toast({ title: "Change failed", description: e.response?.data?.message ?? e.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   const saveSystem = async () => {
     setSaving(true);
-    try {
-      await api.put("/settings/system", system);
-      toast({ title: "System settings saved" });
-    } catch (e: any) {
-      toast({ title: "Save failed", description: e.response?.data?.message ?? e.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
+    try { await api.put("/settings/system", system); toast({ title: "System settings saved" }); }
+    catch (e: any) { toast({ title: "Save failed", description: e.response?.data?.message ?? e.message, variant: "destructive" }); }
+    finally { setSaving(false); }
   };
 
   const saveNotifications = async () => {
     setSaving(true);
-    try {
-      await api.put("/settings/notifications", notifPrefs);
-      toast({ title: "Notification preferences saved" });
-    } catch (e: any) {
-      toast({ title: "Save failed", description: e.response?.data?.message ?? e.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
+    try { await api.put("/settings/notifications", notifPrefs); toast({ title: "Notification preferences saved" }); }
+    catch (e: any) { toast({ title: "Save failed", description: e.response?.data?.message ?? e.message, variant: "destructive" }); }
+    finally { setSaving(false); }
   };
 
   const saveAppearance = async () => {
     setSaving(true);
-    try {
-      await api.put("/settings/appearance", { theme, density });
-      toast({ title: "Appearance saved" });
-    } catch (e: any) {
-      toast({ title: "Save failed", description: e.response?.data?.message ?? e.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
+    try { await api.put("/settings/appearance", { theme, density }); toast({ title: "Appearance saved" }); }
+    catch (e: any) { toast({ title: "Save failed", description: e.response?.data?.message ?? e.message, variant: "destructive" }); }
+    finally { setSaving(false); }
   };
 
   const revokeSession = async (sessionId: string) => {
@@ -289,9 +256,8 @@ export const SettingsPage = () => {
       await api.delete(`/settings/sessions/${sessionId}`);
       setSessions(prev => prev.filter(s => s.id !== sessionId));
       toast({ title: "Session revoked" });
-    } catch {
-      toast({ title: "Failed to revoke session", variant: "destructive" });
-    }
+    } catch { toast({ title: "Failed to revoke session", variant: "destructive" }); }
+    finally { setRevokeTarget(null); }
   };
 
   const revokeAllSessions = async () => {
@@ -299,69 +265,114 @@ export const SettingsPage = () => {
       await api.delete("/settings/sessions");
       setSessions([]);
       toast({ title: "All other sessions revoked" });
-    } catch {
-      toast({ title: "Failed", variant: "destructive" });
-    }
+    } catch { toast({ title: "Failed", variant: "destructive" }); }
+    finally { setRevokeAllOpen(false); }
   };
-
-  // ── Strength bar ──────────────────────────────────────────────────────────
 
   const strengthLabel = ["", "Very Weak", "Weak", "Fair", "Strong", "Very Strong"][pwStrength];
   const strengthColor = ["", "bg-destructive", "bg-orange-500", "bg-yellow-500", "bg-success", "bg-success"][pwStrength];
 
+  const handleTabSelect = (id: TabId) => {
+    setActiveTab(id);
+    setSidebarOpen(false);
+  };
+
+  // ── Sidebar content ───────────────────────────────────────────────────────
+
+  const SidebarNav = () => (
+    <nav className="space-y-1">
+      {tabs.map(tab => {
+        const Icon = tab.icon;
+        return (
+          <button
+            key={tab.id}
+            onClick={() => handleTabSelect(tab.id)}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all",
+              activeTab === tab.id
+                ? "bg-primary/10 text-primary border border-primary/20"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+            )}
+          >
+            <Icon className="w-4 h-4 flex-shrink-0" />
+            {tab.label}
+            {activeTab === tab.id && <ChevronRight className="w-3 h-3 ml-auto" />}
+          </button>
+        );
+      })}
+    </nav>
+  );
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background px-3 py-4 sm:px-6 sm:py-6">
       <div className="max-w-6xl mx-auto">
 
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-            <Shield className="w-8 h-8 text-primary" />
-            Settings
-          </h1>
-          <p className="text-muted-foreground mt-1">Manage your account, security, and system preferences</p>
+        <div className="mb-5 sm:mb-8 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-3xl font-bold text-foreground flex items-center gap-2 sm:gap-3">
+              <Shield className="w-5 h-5 sm:w-8 sm:h-8 text-primary flex-shrink-0" />
+              <span className="truncate">Settings</span>
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
+              Manage your account, security, and system preferences
+            </p>
+          </div>
+          {/* Mobile menu toggle */}
+          <Button
+            variant="outline"
+            size="icon"
+            className="lg:hidden flex-shrink-0"
+            onClick={() => setSidebarOpen(v => !v)}
+          >
+            <Menu className="w-4 h-4" />
+          </Button>
         </div>
 
-        <div className="flex gap-6">
+        {/* Mobile: current tab label pill */}
+        <div className="lg:hidden mb-3">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 w-fit">
+            {(() => { const t = tabs.find(t => t.id === activeTab)!; const Icon = t.icon; return <><Icon className="w-4 h-4 text-primary" /><span className="text-sm font-medium text-primary">{t.label}</span></>; })()}
+          </div>
+        </div>
 
-          {/* ── Sidebar nav ── */}
-          <aside className="w-56 flex-shrink-0">
-            <nav className="space-y-1 sticky top-6">
-              {tabs.map(tab => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all",
-                      activeTab === tab.id
-                        ? "bg-primary/10 text-primary border border-primary/20"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-                    )}
-                  >
-                    <Icon className="w-4 h-4 flex-shrink-0" />
-                    {tab.label}
-                    {activeTab === tab.id && <ChevronRight className="w-3 h-3 ml-auto" />}
-                  </button>
-                );
-              })}
-            </nav>
+        {/* Mobile slide-in sidebar */}
+        {sidebarOpen && (
+          <div className="lg:hidden fixed inset-0 z-40 flex">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+            <div className="relative z-50 w-64 bg-background border-r border-border h-full p-4 overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <p className="font-semibold text-foreground text-sm">Navigation</p>
+                <button onClick={() => setSidebarOpen(false)} className="text-muted-foreground hover:text-foreground">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <SidebarNav />
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-4 sm:gap-6">
+
+          {/* Desktop sidebar */}
+          <aside className="hidden lg:block w-56 flex-shrink-0">
+            <div className="sticky top-6">
+              <SidebarNav />
+            </div>
           </aside>
 
-          {/* ── Content ── */}
+          {/* Content */}
           <main className="flex-1 min-w-0">
 
-            {/* ══ PROFILE ══════════════════════════════════════════════════════ */}
+            {/* ══ PROFILE ══════════════════════════════════════════════════ */}
             {activeTab === "profile" && (
               <div>
                 <Section title="Personal Information">
-                  {/* Avatar */}
-                  <div className="flex items-center gap-6 mb-6 pb-6 border-b border-border/50">
-                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/30 to-accent/30 border border-primary/30 flex items-center justify-center flex-shrink-0">
-                      <span className="text-2xl font-bold text-primary">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-5 pb-5 border-b border-border/50">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-primary/30 to-accent/30 border border-primary/30 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xl sm:text-2xl font-bold text-primary">
                         {profile.name?.charAt(0)?.toUpperCase() || "?"}
                       </span>
                     </div>
@@ -374,7 +385,7 @@ export const SettingsPage = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label>Full Name</Label>
                       <Input value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))} />
@@ -418,8 +429,8 @@ export const SettingsPage = () => {
                     </div>
                   </div>
 
-                  <div className="mt-6 flex justify-end">
-                    <Button onClick={saveProfile} disabled={saving} className="gap-2">
+                  <div className="mt-5 flex justify-end">
+                    <Button onClick={saveProfile} disabled={saving} className="gap-2 w-full sm:w-auto">
                       {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                       Save Profile
                     </Button>
@@ -428,14 +439,16 @@ export const SettingsPage = () => {
               </div>
             )}
 
-            {/* ══ SECURITY ═════════════════════════════════════════════════════ */}
+            {/* ══ SECURITY ═════════════════════════════════════════════════ */}
             {activeTab === "security" && (
               <div>
                 <Section title="Change Password">
-                  <div className="space-y-4 max-w-md">
+                  <div className="space-y-4 max-w-full sm:max-w-md">
                     {(["current", "next", "confirm"] as const).map(field => (
                       <div key={field} className="space-y-1.5">
-                        <Label>{field === "current" ? "Current Password" : field === "next" ? "New Password" : "Confirm New Password"}</Label>
+                        <Label>
+                          {field === "current" ? "Current Password" : field === "next" ? "New Password" : "Confirm New Password"}
+                        </Label>
                         <div className="relative">
                           <Input
                             type={showPw[field] ? "text" : "password"}
@@ -453,8 +466,6 @@ export const SettingsPage = () => {
                         </div>
                       </div>
                     ))}
-
-                    {/* Strength meter */}
                     {pwForm.next && (
                       <div>
                         <div className="flex gap-1 mb-1">
@@ -465,7 +476,6 @@ export const SettingsPage = () => {
                         <p className="text-xs text-muted-foreground">{strengthLabel}</p>
                       </div>
                     )}
-
                     <Button onClick={changePassword} disabled={saving} className="gap-2 w-full">
                       {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
                       Update Password
@@ -474,37 +484,37 @@ export const SettingsPage = () => {
                 </Section>
 
                 <Section title="Two-Factor Authentication">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Smartphone className="w-6 h-6 text-primary" />
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Smartphone className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <p className="font-medium text-foreground">Authenticator App</p>
                       <p className="text-sm text-muted-foreground mt-1">Use an authenticator app like Google Authenticator or Authy for an extra layer of security.</p>
                       <Button variant="outline" size="sm" className="mt-3 gap-2">
                         <Shield className="w-3 h-3" /> Enable 2FA
                       </Button>
                     </div>
-                    <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">Not enabled</span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground whitespace-nowrap">Not enabled</span>
                   </div>
                 </Section>
 
                 <Section title="Login History">
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3">
                     {[
                       { device: "Chrome on Windows", location: "Nairobi, KE", time: "Just now", current: true },
                       { device: "Mobile App (Android)", location: "Nairobi, KE", time: "2 hours ago", current: false },
                       { device: "Firefox on macOS", location: "Mombasa, KE", time: "Yesterday", current: false },
                     ].map((entry, i) => (
-                      <div key={i} className="flex items-center gap-4 p-3 rounded-lg bg-secondary/20">
+                      <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/20">
                         <Monitor className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground">{entry.device}</p>
+                          <p className="text-sm font-medium text-foreground truncate">{entry.device}</p>
                           <p className="text-xs text-muted-foreground">{entry.location} · {entry.time}</p>
                         </div>
                         {entry.current
-                          ? <span className="text-xs px-2 py-0.5 rounded-full bg-success/10 text-success">Current</span>
-                          : <button className="text-xs text-destructive hover:underline">Revoke</button>
+                          ? <span className="text-xs px-2 py-0.5 rounded-full bg-success/10 text-success whitespace-nowrap">Current</span>
+                          : <button className="text-xs text-destructive hover:underline whitespace-nowrap">Revoke</button>
                         }
                       </div>
                     ))}
@@ -513,38 +523,29 @@ export const SettingsPage = () => {
               </div>
             )}
 
-            {/* ══ NOTIFICATIONS ════════════════════════════════════════════════ */}
+            {/* ══ NOTIFICATIONS ════════════════════════════════════════════ */}
             {activeTab === "notifications" && (
               <div>
                 <Section title="Email Notifications">
                   <div className="divide-y divide-border/30">
-                    <Toggle checked={notifPrefs.email_incidents} onChange={v => setNotifPrefs(n => ({ ...n, email_incidents: v }))}
-                      label="Incident Alerts" description="Receive emails for new and updated incidents" />
-                    <Toggle checked={notifPrefs.email_system} onChange={v => setNotifPrefs(n => ({ ...n, email_system: v }))}
-                      label="System Notifications" description="Server alerts, maintenance windows, and system updates" />
-                    <Toggle checked={notifPrefs.email_reports} onChange={v => setNotifPrefs(n => ({ ...n, email_reports: v }))}
-                      label="Scheduled Reports" description="Automated report delivery via email" />
+                    <Toggle checked={notifPrefs.email_incidents} onChange={v => setNotifPrefs(n => ({ ...n, email_incidents: v }))} label="Incident Alerts" description="Receive emails for new and updated incidents" />
+                    <Toggle checked={notifPrefs.email_system}    onChange={v => setNotifPrefs(n => ({ ...n, email_system: v }))}    label="System Notifications" description="Server alerts, maintenance windows, and system updates" />
+                    <Toggle checked={notifPrefs.email_reports}   onChange={v => setNotifPrefs(n => ({ ...n, email_reports: v }))}   label="Scheduled Reports" description="Automated report delivery via email" />
                   </div>
                 </Section>
-
                 <Section title="Push Notifications">
                   <div className="divide-y divide-border/30">
-                    <Toggle checked={notifPrefs.push_incidents} onChange={v => setNotifPrefs(n => ({ ...n, push_incidents: v }))}
-                      label="Incident Push Alerts" description="Browser push notifications for critical incidents" />
-                    <Toggle checked={notifPrefs.push_alerts} onChange={v => setNotifPrefs(n => ({ ...n, push_alerts: v }))}
-                      label="Security Alerts" description="Real-time push for alarms and breaches" />
+                    <Toggle checked={notifPrefs.push_incidents} onChange={v => setNotifPrefs(n => ({ ...n, push_incidents: v }))} label="Incident Push Alerts" description="Browser push notifications for critical incidents" />
+                    <Toggle checked={notifPrefs.push_alerts}    onChange={v => setNotifPrefs(n => ({ ...n, push_alerts: v }))}    label="Security Alerts" description="Real-time push for alarms and breaches" />
                   </div>
                 </Section>
-
                 <Section title="SMS Notifications">
                   <div className="divide-y divide-border/30">
-                    <Toggle checked={notifPrefs.sms_critical} onChange={v => setNotifPrefs(n => ({ ...n, sms_critical: v }))}
-                      label="Critical Alerts via SMS" description="SMS for P1 incidents only (charges may apply)" />
+                    <Toggle checked={notifPrefs.sms_critical} onChange={v => setNotifPrefs(n => ({ ...n, sms_critical: v }))} label="Critical Alerts via SMS" description="SMS for P1 incidents only (charges may apply)" />
                   </div>
                 </Section>
-
                 <Section title="Digest Settings">
-                  <div className="space-y-1.5 max-w-xs">
+                  <div className="space-y-1.5 max-w-full sm:max-w-xs">
                     <Label>Email Digest Frequency</Label>
                     <Select value={notifPrefs.digest_frequency} onValueChange={v => setNotifPrefs(n => ({ ...n, digest_frequency: v }))}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
@@ -557,8 +558,8 @@ export const SettingsPage = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="mt-6 flex justify-end">
-                    <Button onClick={saveNotifications} disabled={saving} className="gap-2">
+                  <div className="mt-5 flex justify-end">
+                    <Button onClick={saveNotifications} disabled={saving} className="gap-2 w-full sm:w-auto">
                       {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                       Save Preferences
                     </Button>
@@ -567,11 +568,11 @@ export const SettingsPage = () => {
               </div>
             )}
 
-            {/* ══ SYSTEM ═══════════════════════════════════════════════════════ */}
+            {/* ══ SYSTEM ═══════════════════════════════════════════════════ */}
             {activeTab === "system" && (
               <div>
                 {profile.role !== "Admin" ? (
-                  <div className="glass-card rounded-xl border border-border/50 p-12 text-center">
+                  <div className="glass-card rounded-xl border border-border/50 p-10 sm:p-12 text-center">
                     <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-40" />
                     <p className="font-medium text-foreground">Admin Access Required</p>
                     <p className="text-sm text-muted-foreground mt-1">Only administrators can manage system settings.</p>
@@ -579,7 +580,7 @@ export const SettingsPage = () => {
                 ) : (
                   <>
                     <Section title="Company Information">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <Label>Company Name</Label>
                           <Input value={system.company_name} onChange={e => setSystem(s => ({ ...s, company_name: e.target.value }))} />
@@ -604,7 +605,7 @@ export const SettingsPage = () => {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="col-span-2 space-y-1.5">
+                        <div className="col-span-1 sm:col-span-2 space-y-1.5">
                           <Label>Company Address</Label>
                           <Textarea value={system.company_address} onChange={e => setSystem(s => ({ ...s, company_address: e.target.value }))} rows={2} />
                         </div>
@@ -612,7 +613,7 @@ export const SettingsPage = () => {
                     </Section>
 
                     <Section title="Security Policy">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <Label>Session Timeout (minutes)</Label>
                           <Input type="number" min={5} max={480} value={system.session_timeout}
@@ -636,17 +637,14 @@ export const SettingsPage = () => {
                         </div>
                       </div>
                       <div className="mt-4 pt-4 border-t border-border/50">
-                        <Toggle
-                          checked={system.two_factor_enabled}
-                          onChange={v => setSystem(s => ({ ...s, two_factor_enabled: v }))}
+                        <Toggle checked={system.two_factor_enabled} onChange={v => setSystem(s => ({ ...s, two_factor_enabled: v }))}
                           label="Require 2FA for All Users"
-                          description="Force all staff accounts to set up two-factor authentication"
-                        />
+                          description="Force all staff accounts to set up two-factor authentication" />
                       </div>
                     </Section>
 
                     <Section title="Regional Settings">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <Label>System Timezone</Label>
                           <Select value={system.timezone} onValueChange={v => setSystem(s => ({ ...s, timezone: v }))}>
@@ -674,7 +672,7 @@ export const SettingsPage = () => {
                     </Section>
 
                     <div className="flex justify-end">
-                      <Button onClick={saveSystem} disabled={saving} className="gap-2">
+                      <Button onClick={saveSystem} disabled={saving} className="gap-2 w-full sm:w-auto">
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         Save System Settings
                       </Button>
@@ -684,11 +682,11 @@ export const SettingsPage = () => {
               </div>
             )}
 
-            {/* ══ APPEARANCE ═══════════════════════════════════════════════════ */}
+            {/* ══ APPEARANCE ═══════════════════════════════════════════════ */}
             {activeTab === "appearance" && (
               <div>
                 <Section title="Theme">
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
                     {[
                       { id: "dark",   label: "Dark",   icon: Moon },
                       { id: "light",  label: "Light",  icon: Sun },
@@ -698,43 +696,43 @@ export const SettingsPage = () => {
                         key={id}
                         onClick={() => setTheme(id)}
                         className={cn(
-                          "p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all",
+                          "p-3 sm:p-4 rounded-xl border-2 flex flex-col items-center gap-1.5 sm:gap-2 transition-all",
                           theme === id
                             ? "border-primary bg-primary/5 text-primary"
                             : "border-border text-muted-foreground hover:border-primary/40"
                         )}
                       >
-                        <Icon className="w-6 h-6" />
-                        <span className="text-sm font-medium">{label}</span>
+                        <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+                        <span className="text-xs sm:text-sm font-medium">{label}</span>
                       </button>
                     ))}
                   </div>
                 </Section>
 
                 <Section title="Density">
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-3">
                     {["compact", "comfortable", "spacious"].map(d => (
                       <button
                         key={d}
                         onClick={() => setDensity(d)}
                         className={cn(
-                          "p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all capitalize",
+                          "p-3 sm:p-4 rounded-xl border-2 flex flex-col items-center gap-1.5 sm:gap-2 transition-all capitalize",
                           density === d
                             ? "border-primary bg-primary/5 text-primary"
                             : "border-border text-muted-foreground hover:border-primary/40"
                         )}
                       >
-                        <div className={cn("flex flex-col gap-1 w-8", d === "compact" && "gap-0.5", d === "spacious" && "gap-2")}>
+                        <div className={cn("flex flex-col gap-1 w-7 sm:w-8", d === "compact" && "gap-0.5", d === "spacious" && "gap-2")}>
                           {[1,2,3].map(i => <div key={i} className="h-1.5 bg-current rounded opacity-60" />)}
                         </div>
-                        <span className="text-sm font-medium">{d}</span>
+                        <span className="text-xs sm:text-sm font-medium">{d}</span>
                       </button>
                     ))}
                   </div>
                 </Section>
 
                 <div className="flex justify-end">
-                  <Button onClick={saveAppearance} disabled={saving} className="gap-2">
+                  <Button onClick={saveAppearance} disabled={saving} className="gap-2 w-full sm:w-auto">
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     Save Appearance
                   </Button>
@@ -742,56 +740,90 @@ export const SettingsPage = () => {
               </div>
             )}
 
-            {/* ══ SESSIONS ═════════════════════════════════════════════════════ */}
+            {/* ══ SESSIONS ═════════════════════════════════════════════════ */}
             {activeTab === "sessions" && (
               <div>
                 <Section title="Active Sessions">
                   <p className="text-sm text-muted-foreground mb-4">
                     These are all devices currently signed into your account. Revoke any sessions you don't recognise.
                   </p>
-                  {sessions.length === 0 ? (
-                    <div className="space-y-3">
-                      {/* Static placeholder — real sessions come from API */}
-                      {[
-                        { device: "Chrome on Windows 11", location: "Nairobi, Kenya", ip: "196.201.x.x", time: "Active now", current: true },
-                        { device: "ISMS Mobile (Android)", location: "Nairobi, Kenya", ip: "196.201.x.x", time: "1 hour ago", current: false },
-                      ].map((s, i) => (
-                        <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-secondary/20 border border-border/50">
-                          <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
-                            s.current ? "bg-success/10" : "bg-secondary")}>
-                            <Monitor className={cn("w-5 h-5", s.current ? "text-success" : "text-muted-foreground")} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground">{s.device}</p>
-                            <p className="text-xs text-muted-foreground">{s.location} · {s.ip} · {s.time}</p>
-                          </div>
-                          {s.current
-                            ? <span className="text-xs px-2.5 py-1 rounded-full bg-success/10 text-success font-medium">This device</span>
-                            : <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1">
-                                <LogOut className="w-3 h-3" /> Revoke
-                              </Button>
+
+                  {/* Sessions table */}
+                  <div className="glass-card rounded-xl border border-border/50 overflow-hidden mb-4">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm min-w-[420px]">
+                        <thead className="bg-secondary/30 border-b border-border/50">
+                          <tr>
+                            {["Device","Location","Last Active","Actions"].map(h => (
+                              <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                                {h}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border/30">
+                          {sessions.length === 0
+                            ? [
+                                { id: "s1", device: "Chrome on Windows 11", location: "Nairobi, Kenya", ip: "196.201.x.x", time: "Active now", current: true },
+                                { id: "s2", device: "ISMS Mobile (Android)", location: "Nairobi, Kenya", ip: "196.201.x.x", time: "1 hour ago", current: false },
+                              ].map(s => (
+                                <tr key={s.id} className="hover:bg-secondary/20 transition-colors">
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center gap-2.5">
+                                      <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0",
+                                        s.current ? "bg-success/10" : "bg-secondary")}>
+                                        <Monitor className={cn("w-3.5 h-3.5", s.current ? "text-success" : "text-muted-foreground")} />
+                                      </div>
+                                      <span className="font-medium text-foreground text-xs sm:text-sm truncate max-w-[140px]">{s.device}</span>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{s.location}</td>
+                                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{s.time}</td>
+                                  <td className="px-4 py-3">
+                                    {s.current
+                                      ? <span className="text-xs px-2 py-0.5 rounded-full bg-success/10 text-success font-medium whitespace-nowrap">This device</span>
+                                      : <Button variant="outline" size="sm"
+                                          className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1 h-7 text-xs px-2"
+                                          onClick={() => setRevokeTarget(s.id)}>
+                                          <LogOut className="w-3 h-3" /> Revoke
+                                        </Button>
+                                    }
+                                  </td>
+                                </tr>
+                              ))
+                            : sessions.map(s => (
+                                <tr key={s.id} className="hover:bg-secondary/20 transition-colors">
+                                  <td className="px-4 py-3">
+                                    <div className="flex items-center gap-2.5">
+                                      <Monitor className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                      <span className="font-medium text-foreground text-xs sm:text-sm truncate max-w-[140px]">{s.device}</span>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{s.ip}</td>
+                                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{s.last_active}</td>
+                                  <td className="px-4 py-3">
+                                    {!s.current && (
+                                      <Button variant="outline" size="sm"
+                                        className="text-destructive border-destructive/30 hover:bg-destructive/10 gap-1 h-7 text-xs px-2"
+                                        onClick={() => setRevokeTarget(s.id)}>
+                                        <LogOut className="w-3 h-3" /> Revoke
+                                      </Button>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))
                           }
-                        </div>
-                      ))}
+                        </tbody>
+                      </table>
                     </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {sessions.map(s => (
-                        <div key={s.id} className="flex items-center gap-4 p-4 rounded-xl bg-secondary/20 border border-border/50">
-                          <Monitor className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{s.device}</p>
-                            <p className="text-xs text-muted-foreground">{s.ip} · {s.last_active}</p>
-                          </div>
-                          {!s.current && (
-                            <Button variant="outline" size="sm" onClick={() => revokeSession(s.id)}>Revoke</Button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <div className="mt-4 pt-4 border-t border-border/50 flex justify-end">
-                    <Button variant="outline" onClick={revokeAllSessions} className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10">
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button
+                      variant="outline"
+                      onClick={() => setRevokeAllOpen(true)}
+                      className="gap-2 text-destructive border-destructive/30 hover:bg-destructive/10 w-full sm:w-auto"
+                    >
                       <LogOut className="w-4 h-4" /> Revoke All Other Sessions
                     </Button>
                   </div>
@@ -802,6 +834,26 @@ export const SettingsPage = () => {
           </main>
         </div>
       </div>
+
+      {/* Revoke single session confirm */}
+      <ConfirmModal
+        open={revokeTarget !== null}
+        title="Revoke Session"
+        description="Are you sure you want to revoke this session? The device will be signed out immediately."
+        confirmLabel="Revoke"
+        onConfirm={() => revokeTarget && revokeSession(revokeTarget)}
+        onCancel={() => setRevokeTarget(null)}
+      />
+
+      {/* Revoke all sessions confirm */}
+      <ConfirmModal
+        open={revokeAllOpen}
+        title="Revoke All Other Sessions"
+        description="This will sign out all devices except your current one. Are you sure?"
+        confirmLabel="Revoke All"
+        onConfirm={revokeAllSessions}
+        onCancel={() => setRevokeAllOpen(false)}
+      />
     </div>
   );
 };

@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Trash2,
   Edit,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +33,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
@@ -95,6 +106,8 @@ export const SchedulingPage = () => {
   const [isAddShiftOpen, setIsAddShiftOpen] = useState(false);
   const [isEditShiftOpen, setIsEditShiftOpen] = useState(false);
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [shiftToDelete, setShiftToDelete] = useState<Shift | null>(null);
 
   // Options for dropdowns in create modal
   const [guardOptions, setGuardOptions] = useState<GuardOption[]>([]);
@@ -170,7 +183,6 @@ export const SchedulingPage = () => {
 
   const fetchGuardOptions = async () => {
     try {
-      // Fetch active guards for the dropdown — use a large limit to get all
       const response = await api.get("/personnel", {
         params: { status: "active", limit: 200 },
       });
@@ -262,10 +274,17 @@ export const SchedulingPage = () => {
     }
   };
 
-  const handleDeleteShift = async (shiftId: string) => {
-    if (!confirm("Are you sure you want to delete this shift?")) return;
+  const handleOpenDeleteDialog = (shift: Shift) => {
+    setShiftToDelete(shift);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!shiftToDelete) return;
     try {
-      await api.delete(`/shifts/${shiftId}`);
+      await api.delete(`/shifts/${shiftToDelete.id}`);
+      setIsDeleteDialogOpen(false);
+      setShiftToDelete(null);
       fetchShifts();
       fetchStats();
     } catch (error: any) {
@@ -285,39 +304,40 @@ export const SchedulingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background p-3 sm:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-              <CalIcon className="w-8 h-8 text-primary" />
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground flex items-center gap-2 sm:gap-3">
+              <CalIcon className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
               Deployment & Scheduling
             </h1>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Manage guard shifts and duty assignments
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <Button
               variant="outline"
-              className="gap-2"
+              size="sm"
+              className="gap-2 flex-1 sm:flex-initial"
               onClick={() => { fetchShifts(); fetchStats(); }}
             >
               <RefreshCw className="w-4 h-4" />
-              Refresh
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
 
             {/* Create Shift Dialog */}
             <Dialog open={isAddShiftOpen} onOpenChange={setIsAddShiftOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-2">
+                <Button size="sm" className="gap-2 flex-1 sm:flex-initial">
                   <Plus className="w-4 h-4" />
                   Create Shift
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Create New Shift</DialogTitle>
                   <DialogDescription>
@@ -325,7 +345,7 @@ export const SchedulingPage = () => {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Guard</Label>
                       <Select
@@ -375,7 +395,7 @@ export const SchedulingPage = () => {
                       </Select>
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-2">
                       <Label>Date</Label>
                       <Input
@@ -410,11 +430,11 @@ export const SchedulingPage = () => {
                     />
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsAddShiftOpen(false)}>
+                <DialogFooter className="flex-col sm:flex-row gap-2">
+                  <Button variant="outline" className="w-full sm:w-auto" onClick={() => setIsAddShiftOpen(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleCreateShift}>Create Shift</Button>
+                  <Button className="w-full sm:w-auto" onClick={handleCreateShift}>Create Shift</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -422,65 +442,66 @@ export const SchedulingPage = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="glass-card rounded-xl p-5 border border-border/50">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="glass-card rounded-xl p-3 sm:p-5 border border-border/50">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {filterDate === today ? "Today's Shifts" : "Shifts on Date"}
                 </p>
-                <p className="text-3xl font-bold text-foreground mt-1">{displayStats.today}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">{displayStats.today}</p>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                <CalIcon className="w-6 h-6 text-primary" />
-              </div>
-            </div>
-          </div>
-
-          <div className="glass-card rounded-xl p-5 border border-border/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Ongoing Now</p>
-                <p className="text-3xl font-bold text-warning mt-1">{displayStats.ongoing}</p>
-              </div>
-              <div className="w-12 h-12 rounded-lg bg-warning/10 flex items-center justify-center">
-                <Clock className="w-6 h-6 text-warning" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <CalIcon className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
               </div>
             </div>
           </div>
 
-          <div className="glass-card rounded-xl p-5 border border-border/50">
+          <div className="glass-card rounded-xl p-3 sm:p-5 border border-border/50">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Completed</p>
-                <p className="text-3xl font-bold text-success mt-1">{displayStats.completed}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">Ongoing Now</p>
+                <p className="text-2xl sm:text-3xl font-bold text-warning mt-1">{displayStats.ongoing}</p>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-success/10 flex items-center justify-center">
-                <CheckCircle className="w-6 h-6 text-success" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-warning/10 flex items-center justify-center">
+                <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-warning" />
               </div>
             </div>
           </div>
 
-          <div className="glass-card rounded-xl p-5 border border-border/50">
+          <div className="glass-card rounded-xl p-3 sm:p-5 border border-border/50">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Missed</p>
-                <p className="text-3xl font-bold text-destructive mt-1">{displayStats.missed}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">Completed</p>
+                <p className="text-2xl sm:text-3xl font-bold text-success mt-1">{displayStats.completed}</p>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-destructive/10 flex items-center justify-center">
-                <AlertCircle className="w-6 h-6 text-destructive" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-success/10 flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-success" />
+              </div>
+            </div>
+          </div>
+
+          <div className="glass-card rounded-xl p-3 sm:p-5 border border-border/50">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-muted-foreground">Missed</p>
+                <p className="text-2xl sm:text-3xl font-bold text-destructive mt-1">{displayStats.missed}</p>
+              </div>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-destructive/10 flex items-center justify-center">
+                <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-destructive" />
               </div>
             </div>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="glass-card rounded-xl p-5 border border-border/50">
+        <div className="glass-card rounded-xl p-4 sm:p-5 border border-border/50">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Filter by Date</Label>
+              <Label className="text-sm">Filter by Date</Label>
               <Input
                 type="date"
+                className="text-sm"
                 value={filterDate}
                 onChange={(e) => {
                   setFilterDate(e.target.value);
@@ -489,7 +510,7 @@ export const SchedulingPage = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label>Filter by Status</Label>
+              <Label className="text-sm">Filter by Status</Label>
               <Select
                 value={filterStatus}
                 onValueChange={(v) => {
@@ -510,7 +531,7 @@ export const SchedulingPage = () => {
               </Select>
             </div>
             <div className="flex items-end">
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" size="sm" className="w-full">
                 <Download className="w-4 h-4 mr-2" />
                 Export Schedule
               </Button>
@@ -518,69 +539,48 @@ export const SchedulingPage = () => {
           </div>
         </div>
 
-        {/* Shifts Table */}
+        {/* Shifts Table/Cards */}
         {loading ? (
           <div className="text-center py-12">
             <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="text-muted-foreground">Loading shifts...</p>
+            <p className="text-sm text-muted-foreground">Loading shifts...</p>
           </div>
         ) : shifts.length === 0 ? (
           <div className="text-center py-12">
             <CalIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No shifts found for the selected filters</p>
+            <p className="text-sm text-muted-foreground">No shifts found for the selected filters</p>
           </div>
         ) : (
           <>
-            <div className="glass-card rounded-xl border border-border/50 overflow-hidden">
+            {/* Desktop Table View */}
+            <div className="hidden lg:block glass-card rounded-xl border border-border/50 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-secondary/30 border-b border-border/50">
                     <tr>
-                      <th className="px-5 py-4 text-left text-sm font-semibold text-foreground">
-                        Shift
-                      </th>
-                      <th className="px-5 py-4 text-left text-sm font-semibold text-foreground">
-                        Guard
-                      </th>
-                      <th className="px-5 py-4 text-left text-sm font-semibold text-foreground">
-                        Site
-                      </th>
-                      <th className="px-5 py-4 text-left text-sm font-semibold text-foreground">
-                        Date & Time
-                      </th>
-                      <th className="px-5 py-4 text-left text-sm font-semibold text-foreground">
-                        Check In / Out
-                      </th>
-                      <th className="px-5 py-4 text-left text-sm font-semibold text-foreground">
-                        Status
-                      </th>
-                      <th className="px-5 py-4 text-left text-sm font-semibold text-foreground">
-                        Actions
-                      </th>
+                      <th className="px-5 py-4 text-left text-sm font-semibold text-foreground">Shift</th>
+                      <th className="px-5 py-4 text-left text-sm font-semibold text-foreground">Guard</th>
+                      <th className="px-5 py-4 text-left text-sm font-semibold text-foreground">Site</th>
+                      <th className="px-5 py-4 text-left text-sm font-semibold text-foreground">Date & Time</th>
+                      <th className="px-5 py-4 text-left text-sm font-semibold text-foreground">Check In / Out</th>
+                      <th className="px-5 py-4 text-left text-sm font-semibold text-foreground">Status</th>
+                      <th className="px-5 py-4 text-left text-sm font-semibold text-foreground">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {shifts.map((shift) => {
-                      const conf =
-                        shiftStatusConfig[shift.status] ?? shiftStatusConfig.scheduled;
+                      const conf = shiftStatusConfig[shift.status] ?? shiftStatusConfig.scheduled;
                       return (
-                        <tr
-                          key={shift.id}
-                          className="border-b border-border/30 hover:bg-secondary/20 transition-colors"
-                        >
+                        <tr key={shift.id} className="border-b border-border/30 hover:bg-secondary/20 transition-colors">
                           <td className="px-5 py-4">
-                            <p className="font-mono text-sm">
-                              {shift.shift_code || shift.id}
-                            </p>
+                            <p className="font-mono text-sm">{shift.shift_code || shift.id.slice(0, 8)}</p>
                           </td>
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-2">
                               <User className="w-4 h-4 text-muted-foreground" />
                               <div>
                                 <p className="text-sm font-medium">{shift.guardName}</p>
-                                <p className="text-xs text-muted-foreground font-mono">
-                                  {shift.guardEmployeeId}
-                                </p>
+                                <p className="text-xs text-muted-foreground font-mono">{shift.guardEmployeeId}</p>
                               </div>
                             </div>
                           </td>
@@ -589,57 +589,35 @@ export const SchedulingPage = () => {
                               <MapPin className="w-4 h-4 text-muted-foreground" />
                               <div>
                                 <p className="text-sm">{shift.siteName}</p>
-                                <p className="text-xs text-muted-foreground font-mono">
-                                  {shift.siteCode}
-                                </p>
+                                <p className="text-xs text-muted-foreground font-mono">{shift.siteCode}</p>
                               </div>
                             </div>
                           </td>
                           <td className="px-5 py-4">
                             <p className="text-sm">{shift.date}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {shift.startTime} – {shift.endTime}
-                            </p>
+                            <p className="text-xs text-muted-foreground">{shift.startTime} – {shift.endTime}</p>
                           </td>
                           <td className="px-5 py-4">
                             {shift.checkInTime ? (
                               <div className="text-sm">
                                 <p className="text-success">In: {shift.checkInTime}</p>
-                                {shift.checkOutTime ? (
-                                  <p className="text-muted-foreground">
-                                    Out: {shift.checkOutTime}
-                                  </p>
-                                ) : null}
+                                {shift.checkOutTime && <p className="text-muted-foreground">Out: {shift.checkOutTime}</p>}
                               </div>
                             ) : (
                               <p className="text-xs text-muted-foreground">—</p>
                             )}
                           </td>
                           <td className="px-5 py-4">
-                            <span
-                              className={cn(
-                                "text-xs font-medium px-3 py-1.5 rounded-full",
-                                conf.bg,
-                                conf.color
-                              )}
-                            >
+                            <span className={cn("text-xs font-medium px-3 py-1.5 rounded-full", conf.bg, conf.color)}>
                               {conf.label}
                             </span>
                           </td>
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleOpenEdit(shift)}
-                              >
+                              <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(shift)}>
                                 <Edit className="w-4 h-4" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteShift(shift.id)}
-                              >
+                              <Button variant="ghost" size="sm" onClick={() => handleOpenDeleteDialog(shift)}>
                                 <Trash2 className="w-4 h-4 text-destructive" />
                               </Button>
                             </div>
@@ -652,10 +630,58 @@ export const SchedulingPage = () => {
               </div>
             </div>
 
+            {/* Mobile Card View */}
+            <div className="lg:hidden space-y-3">
+              {shifts.map((shift) => {
+                const conf = shiftStatusConfig[shift.status] ?? shiftStatusConfig.scheduled;
+                return (
+                  <div key={shift.id} className="glass-card rounded-xl p-4 border border-border/50">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <p className="font-mono text-xs text-muted-foreground mb-1">{shift.shift_code || shift.id.slice(0, 8)}</p>
+                        <p className="font-medium text-sm">{shift.guardName}</p>
+                        <p className="text-xs text-muted-foreground">{shift.guardEmployeeId}</p>
+                      </div>
+                      <span className={cn("text-xs font-medium px-2.5 py-1 rounded-full", conf.bg, conf.color)}>
+                        {conf.label}
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-2 mb-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span>{shift.siteName}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <CalIcon className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span>{shift.date} · {shift.startTime} – {shift.endTime}</span>
+                      </div>
+                      {shift.checkInTime && (
+                        <div className="text-xs">
+                          <span className="text-success">In: {shift.checkInTime}</span>
+                          {shift.checkOutTime && <span className="text-muted-foreground ml-2">Out: {shift.checkOutTime}</span>}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2 pt-2 border-t border-border/50">
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => handleOpenEdit(shift)}>
+                        <Edit className="w-3.5 h-3.5 mr-1" /> Edit
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-destructive" onClick={() => handleOpenDeleteDialog(shift)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
             {/* Pagination */}
             {pagination.pages > 1 && (
               <div className="flex justify-center items-center gap-2 mt-6">
                 <Button
+                  size="sm"
                   variant="outline"
                   disabled={pagination.page === 1}
                   onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
@@ -666,6 +692,7 @@ export const SchedulingPage = () => {
                   Page {pagination.page} of {pagination.pages}
                 </span>
                 <Button
+                  size="sm"
                   variant="outline"
                   disabled={pagination.page === pagination.pages}
                   onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
@@ -679,12 +706,11 @@ export const SchedulingPage = () => {
 
         {/* Edit Shift Dialog */}
         <Dialog open={isEditShiftOpen} onOpenChange={setIsEditShiftOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg w-[95vw]">
             <DialogHeader>
               <DialogTitle>Update Shift</DialogTitle>
               <DialogDescription>
-                Update status or check-in/out times for{" "}
-                {editingShift?.guardName} — {editingShift?.date}
+                Update status or check-in/out times for {editingShift?.guardName} — {editingShift?.date}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -692,13 +718,9 @@ export const SchedulingPage = () => {
                 <Label>Status</Label>
                 <Select
                   value={editForm.status}
-                  onValueChange={(v) =>
-                    setEditForm({ ...editForm, status: v as Shift["status"] })
-                  }
+                  onValueChange={(v) => setEditForm({ ...editForm, status: v as Shift["status"] })}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="scheduled">Scheduled</SelectItem>
                     <SelectItem value="ongoing">Ongoing</SelectItem>
@@ -713,9 +735,7 @@ export const SchedulingPage = () => {
                   <Input
                     type="time"
                     value={editForm.checkInTime}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, checkInTime: e.target.value })
-                    }
+                    onChange={(e) => setEditForm({ ...editForm, checkInTime: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -723,9 +743,7 @@ export const SchedulingPage = () => {
                   <Input
                     type="time"
                     value={editForm.checkOutTime}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, checkOutTime: e.target.value })
-                    }
+                    onChange={(e) => setEditForm({ ...editForm, checkOutTime: e.target.value })}
                   />
                 </div>
               </div>
@@ -738,14 +756,43 @@ export const SchedulingPage = () => {
                 />
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditShiftOpen(false)}>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button variant="outline" className="w-full sm:w-auto" onClick={() => setIsEditShiftOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleUpdateShift}>Save Changes</Button>
+              <Button className="w-full sm:w-auto" onClick={handleUpdateShift}>Save Changes</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent className="w-[95vw] max-w-md">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Shift?</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2">
+                <p>Are you sure you want to delete this shift assignment?</p>
+                {shiftToDelete && (
+                  <div className="p-3 rounded-lg bg-secondary/30 border border-border/50 text-sm mt-3">
+                    <p className="font-medium">{shiftToDelete.guardName}</p>
+                    <p className="text-xs text-muted-foreground">{shiftToDelete.siteName} · {shiftToDelete.date}</p>
+                  </div>
+                )}
+                <p className="text-xs mt-2">This action cannot be undone.</p>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+              <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmDelete}
+                className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Shift
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
       </div>
     </div>

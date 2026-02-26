@@ -23,6 +23,7 @@ import { Login } from "./Page/Auth/Login";
 import { Register } from "./Page/Auth/Register";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import SettingsPage from "./Page/Settings/Settings";
+import SitesPage from "./Page/Sites/sites";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="/personnel" element={<PersonnelPage />} />
               <Route path="/portal" element={<PortalPage />} />
               <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/sites" element={<SitesPage />} />
               <Route path="/scheduling" element={<SchedulingPage />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />

@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import {
   DollarSign, Plus, Eye, Download, RefreshCw,
   Edit, Trash2, CheckCircle, Clock, AlertTriangle, Search,
+  X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,10 +34,10 @@ interface Stats {
 interface ClientOption { id: string; name: string; }
 
 const statusConfig = {
-  paid:    { color: "text-success",         bg: "bg-success/10",     label: "Paid",    icon: CheckCircle },
-  pending: { color: "text-warning",          bg: "bg-warning/10",     label: "Pending", icon: Clock },
-  overdue: { color: "text-destructive",      bg: "bg-destructive/10", label: "Overdue", icon: AlertTriangle },
-  draft:   { color: "text-muted-foreground", bg: "bg-muted",          label: "Draft",   icon: Clock },
+  paid:    { color: "text-success",         bg: "bg-success/10",     dot: "bg-success",         label: "Paid",    icon: CheckCircle },
+  pending: { color: "text-warning",          bg: "bg-warning/10",     dot: "bg-warning",         label: "Pending", icon: Clock },
+  overdue: { color: "text-destructive",      bg: "bg-destructive/10", dot: "bg-destructive",     label: "Overdue", icon: AlertTriangle },
+  draft:   { color: "text-muted-foreground", bg: "bg-muted",          dot: "bg-muted-foreground",label: "Draft",   icon: Clock },
 };
 
 const EMPTY_FORM = {
@@ -44,6 +45,65 @@ const EMPTY_FORM = {
   dueDate: "", issueDate: new Date().toISOString().split("T")[0],
   status: "draft", notes: "",
 };
+
+const PAGE_SIZE = 10;
+
+// ── Confirm Modal ─────────────────────────────────────────────────────────────
+function ConfirmModal({ open, title, description, onConfirm, onCancel }: {
+  open: boolean; title: string; description: string;
+  onConfirm: () => void; onCancel: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative z-10 w-full max-w-sm rounded-xl bg-background border border-border shadow-xl p-6 flex flex-col gap-4">
+        <div className="flex items-start justify-between gap-2">
+          <h2 className="text-base font-semibold text-foreground">{title}</h2>
+          <button onClick={onCancel} className="text-muted-foreground hover:text-foreground transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <p className="text-sm text-muted-foreground">{description}</p>
+        <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+          <Button variant="outline" onClick={onCancel} className="w-full sm:w-auto">Cancel</Button>
+          <Button variant="destructive" onClick={onConfirm} className="w-full sm:w-auto">Delete</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Pagination ────────────────────────────────────────────────────────────────
+function Pagination({ page, total, pageSize, onChange }: {
+  page: number; total: number; pageSize: number; onChange: (p: number) => void;
+}) {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const from = Math.min(total, (page - 1) * pageSize + 1);
+  const to   = Math.min(total, page * pageSize);
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-border/30">
+      <p className="text-xs text-muted-foreground order-2 sm:order-1">
+        Showing {from}–{to} of {total}
+      </p>
+      <div className="flex items-center gap-1 order-1 sm:order-2">
+        <Button variant="outline" size="icon" className="h-7 w-7" disabled={page === 1} onClick={() => onChange(1)}>
+          <ChevronsLeft className="w-3.5 h-3.5" />
+        </Button>
+        <Button variant="outline" size="icon" className="h-7 w-7" disabled={page === 1} onClick={() => onChange(page - 1)}>
+          <ChevronLeft className="w-3.5 h-3.5" />
+        </Button>
+        <span className="text-xs px-2 font-medium">{page} / {totalPages}</span>
+        <Button variant="outline" size="icon" className="h-7 w-7" disabled={page === totalPages} onClick={() => onChange(page + 1)}>
+          <ChevronRight className="w-3.5 h-3.5" />
+        </Button>
+        <Button variant="outline" size="icon" className="h-7 w-7" disabled={page === totalPages} onClick={() => onChange(totalPages)}>
+          <ChevronsRight className="w-3.5 h-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 // ── component ────────────────────────────────────────────────────────────────
 export const BillingPage = () => {
@@ -53,10 +113,12 @@ export const BillingPage = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchTerm, setSearchTerm]     = useState("");
   const [clientOptions, setClientOptions] = useState<ClientOption[]>([]);
+  const [page, setPage]           = useState(1);
 
   const [isAddOpen, setIsAddOpen]   = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Invoice | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [editingInvoice, setEditingInvoice]   = useState<Invoice | null>(null);
   const [form, setForm]       = useState<any>({ ...EMPTY_FORM });
@@ -71,6 +133,7 @@ export const BillingPage = () => {
       if (searchTerm) params.search = searchTerm;
       const res = await api.get("/billing", { params });
       setInvoices(res.data.data.invoices);
+      setPage(1);
     } catch (e) { console.error("Error fetching invoices:", e); }
     finally { setLoading(false); }
   };
@@ -122,9 +185,9 @@ export const BillingPage = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this invoice?")) return;
     try { await api.delete(`/billing/${id}`); fetchInvoices(); fetchStats(); }
     catch (e: any) { alert(e.response?.data?.message || "Failed to delete invoice"); }
+    finally { setDeleteTarget(null); }
   };
 
   const handleMarkPaid = async (inv: Invoice) => {
@@ -137,7 +200,7 @@ export const BillingPage = () => {
     } catch (e: any) { alert(e.response?.data?.message || "Failed to mark as paid"); }
   };
 
-  // ── derived stats ─────────────────────────────────────────────────────────
+  // ── derived ────────────────────────────────────────────────────────────────
   const disp = stats ?? {
     totalRevenue: invoices.reduce((s, i) => s + i.amount, 0),
     collected:    invoices.filter(i => i.status === "paid").reduce((s, i) => s + i.amount, 0),
@@ -146,31 +209,40 @@ export const BillingPage = () => {
     outstanding:  invoices.filter(i => i.status !== "paid").reduce((s, i) => s + i.balance, 0),
   };
 
+  const paged = invoices.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  // ── render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background px-3 py-4 sm:px-6 sm:py-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
 
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-              <DollarSign className="w-8 h-8 text-primary" />
-              Billing & Invoices
+        <div className="flex items-start sm:items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-3xl font-bold text-foreground flex items-center gap-2 sm:gap-3">
+              <DollarSign className="w-5 h-5 sm:w-8 sm:h-8 text-primary flex-shrink-0" />
+              <span className="truncate">Billing & Invoices</span>
             </h1>
-            <p className="text-muted-foreground mt-1">Manage client invoices and payments</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
+              Manage client invoices and payments
+            </p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="gap-2"
+          <div className="flex gap-1.5 flex-shrink-0">
+            <Button variant="outline" size="icon" title="Refresh"
               onClick={() => { fetchInvoices(); fetchStats(); }}>
-              <RefreshCw className="w-4 h-4" /> Refresh
+              <RefreshCw className="w-4 h-4" />
             </Button>
 
             {/* Create Invoice Dialog */}
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-2"><Plus className="w-4 h-4" /> Generate Invoice</Button>
+                <Button className="gap-1.5 text-xs sm:text-sm px-2.5 sm:px-4">
+                  <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Generate Invoice</span>
+                  <span className="sm:hidden">Invoice</span>
+                </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-lg">
+              <DialogContent className="w-[calc(100vw-2rem)] max-w-lg rounded-xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Generate Invoice</DialogTitle>
                   <DialogDescription>Create a new client invoice</DialogDescription>
@@ -187,7 +259,7 @@ export const BillingPage = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Billing Period</Label>
                       <Input placeholder="e.g. January 2026" value={form.billingPeriod}
@@ -205,7 +277,7 @@ export const BillingPage = () => {
                       </Select>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Total Amount (KES) *</Label>
                       <Input type="number" min={0} value={form.totalAmount}
@@ -228,49 +300,57 @@ export const BillingPage = () => {
                       onChange={e => setForm({ ...form, notes: e.target.value })} />
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
-                  <Button onClick={handleCreate}>Create Invoice</Button>
+                <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+                  <Button variant="outline" onClick={() => setIsAddOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+                  <Button onClick={handleCreate} className="w-full sm:w-auto">Create Invoice</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Stats — 2 col mobile, 4 col md+ */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
           {[
-            { label: "Total Revenue",    value: `KES ${((disp.totalRevenue ?? 0) / 1000).toFixed(0)}K`, color: "text-foreground" },
-            { label: "Collected",        value: `KES ${((disp.collected ?? 0) / 1000).toFixed(0)}K`,    color: "text-success" },
-            { label: "Pending Invoices", value: disp.pending,                                            color: "text-warning" },
-            { label: "Overdue",          value: disp.overdue,                                            color: "text-destructive" },
-          ].map(({ label, value, color }) => (
-            <div key={label} className="glass-card rounded-xl p-5 border border-border/50">
-              <p className="text-sm text-muted-foreground">{label}</p>
-              <p className={cn("text-2xl font-bold mt-1", color)}>{value}</p>
+            { label: "Total Revenue",    value: `KES ${((disp.totalRevenue ?? 0) / 1000).toFixed(0)}K`, color: "text-foreground",  bg: "bg-primary/10",     icon: DollarSign },
+            { label: "Collected",        value: `KES ${((disp.collected    ?? 0) / 1000).toFixed(0)}K`, color: "text-success",     bg: "bg-success/10",     icon: CheckCircle },
+            { label: "Pending Invoices", value: disp.pending ?? 0,                                       color: "text-warning",     bg: "bg-warning/10",     icon: Clock },
+            { label: "Overdue",          value: disp.overdue ?? 0,                                       color: "text-destructive", bg: "bg-destructive/10", icon: AlertTriangle },
+          ].map(({ label, value, color, bg, icon: Icon }) => (
+            <div key={label} className="glass-card rounded-xl p-3 sm:p-5 border border-border/50">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground truncate">{label}</p>
+                  <p className={cn("text-lg sm:text-2xl font-bold mt-0.5 truncate", color)}>{value}</p>
+                </div>
+                <div className={cn("w-9 h-9 sm:w-11 sm:h-11 rounded-lg flex items-center justify-center flex-shrink-0", bg)}>
+                  <Icon className={cn("w-4 h-4 sm:w-5 sm:h-5", color)} />
+                </div>
+              </div>
             </div>
           ))}
         </div>
 
         {/* Outstanding banner */}
         {(disp.outstanding ?? 0) > 0 && (
-          <div className="glass-card rounded-xl p-4 border border-warning/30 bg-warning/5 flex items-center justify-between">
-            <p className="text-sm font-medium text-warning">
-              Outstanding balance: KES {((disp.outstanding ?? 0) / 1000).toFixed(1)}K across {(disp.pending ?? 0) + (disp.overdue ?? 0)} invoice(s)
+          <div className="glass-card rounded-xl p-3 sm:p-4 border border-warning/30 bg-warning/5">
+            <p className="text-xs sm:text-sm font-medium text-warning">
+              Outstanding balance: KES {((disp.outstanding ?? 0) / 1000).toFixed(1)}K across{" "}
+              {(disp.pending ?? 0) + (disp.overdue ?? 0)} invoice(s)
             </p>
           </div>
         )}
 
         {/* Filters */}
-        <div className="glass-card rounded-xl p-4 border border-border/50">
-          <div className="flex gap-4">
-            <div className="relative flex-1 max-w-xs">
+        <div className="glass-card rounded-xl p-3 sm:p-4 border border-border/50">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="Search invoices..." className="pl-10" value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)} />
             </div>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="draft">Draft</SelectItem>
@@ -284,98 +364,126 @@ export const BillingPage = () => {
 
         {/* Invoices Table */}
         <div className="glass-card rounded-xl border border-border/50 overflow-hidden">
-          <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
-            <h3 className="font-semibold text-foreground">Invoices</h3>
+          <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-border/50 flex items-center justify-between">
+            <h3 className="font-semibold text-foreground text-sm sm:text-base">Invoices</h3>
             <span className="text-xs text-muted-foreground">{invoices.length} record(s)</span>
           </div>
+
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-              <p className="text-muted-foreground">Loading invoices...</p>
+              <p className="text-muted-foreground text-sm">Loading invoices...</p>
             </div>
           ) : invoices.length === 0 ? (
             <div className="text-center py-12">
               <DollarSign className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No invoices found</p>
+              <p className="text-muted-foreground text-sm">No invoices found</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-secondary/30 border-b border-border/50">
-                  <tr>
-                    {["Invoice","Client","Period","Amount","Paid","Balance","Due Date","Status","Actions"].map(h => (
-                      <th key={h} className="px-5 py-4 text-left text-sm font-semibold text-foreground">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {invoices.map(invoice => {
-                    const sc = statusConfig[invoice.status] ?? statusConfig.draft;
-                    const StatusIcon = sc.icon;
-                    return (
-                      <tr key={invoice.id}
-                        className="border-b border-border/30 hover:bg-secondary/20 transition-colors">
-                        <td className="px-5 py-4 font-mono text-sm">{invoice.invoiceCode}</td>
-                        <td className="px-5 py-4 text-sm font-medium">{invoice.clientName}</td>
-                        <td className="px-5 py-4 text-sm text-muted-foreground">{invoice.period || "—"}</td>
-                        <td className="px-5 py-4 text-sm font-semibold">
-                          KES {invoice.amount.toLocaleString()}
-                        </td>
-                        <td className="px-5 py-4 text-sm text-success">
-                          {invoice.amountPaid > 0 ? `KES ${invoice.amountPaid.toLocaleString()}` : "—"}
-                        </td>
-                        <td className="px-5 py-4 text-sm">
-                          {invoice.balance > 0
-                            ? <span className="text-destructive">KES {invoice.balance.toLocaleString()}</span>
-                            : <span className="text-success">Settled</span>}
-                        </td>
-                        <td className="px-5 py-4 text-sm text-muted-foreground">
-                          {invoice.dueDate || "—"}
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className={cn("text-xs font-medium px-3 py-1.5 rounded-full flex items-center gap-1 w-fit", sc.bg, sc.color)}>
-                            <StatusIcon className="w-3 h-3" /> {sc.label}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="sm"
-                              onClick={() => { setSelectedInvoice(invoice); setIsViewOpen(true); }}>
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(invoice)}>
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            {invoice.status !== "paid" && (
-                              <Button variant="ghost" size="sm" title="Mark as Paid"
-                                onClick={() => handleMarkPaid(invoice)}>
-                                <CheckCircle className="w-4 h-4 text-success" />
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[700px]">
+                  <thead className="bg-secondary/30 border-b border-border/50">
+                    <tr>
+                      {["Invoice","Client","Period","Amount","Paid","Balance","Due Date","Status","Actions"].map(h => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/30">
+                    {paged.map(invoice => {
+                      const sc = statusConfig[invoice.status] ?? statusConfig.draft;
+                      const StatusIcon = sc.icon;
+                      return (
+                        <tr key={invoice.id} className="hover:bg-secondary/20 transition-colors">
+                          {/* Invoice code */}
+                          <td className="px-4 py-3 font-mono text-xs text-foreground whitespace-nowrap">
+                            {invoice.invoiceCode}
+                          </td>
+                          {/* Client */}
+                          <td className="px-4 py-3">
+                            <p className="font-medium text-foreground truncate max-w-[130px]">{invoice.clientName}</p>
+                          </td>
+                          {/* Period */}
+                          <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                            {invoice.period || "—"}
+                          </td>
+                          {/* Amount */}
+                          <td className="px-4 py-3 font-semibold text-foreground whitespace-nowrap">
+                            KES {invoice.amount.toLocaleString()}
+                          </td>
+                          {/* Paid */}
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {invoice.amountPaid > 0
+                              ? <span className="text-success text-xs">KES {invoice.amountPaid.toLocaleString()}</span>
+                              : <span className="text-muted-foreground text-xs">—</span>}
+                          </td>
+                          {/* Balance */}
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {invoice.balance > 0
+                              ? <span className="text-destructive text-xs font-medium">KES {invoice.balance.toLocaleString()}</span>
+                              : <span className="text-success text-xs">Settled</span>}
+                          </td>
+                          {/* Due Date */}
+                          <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                            {invoice.dueDate || "—"}
+                          </td>
+                          {/* Status */}
+                          <td className="px-4 py-3">
+                            <span className={cn("inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap", sc.bg, sc.color)}>
+                              <span className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", sc.dot)} />
+                              {sc.label}
+                            </span>
+                          </td>
+                          {/* Actions */}
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-0.5">
+                              <Button variant="ghost" size="icon" className="h-7 w-7"
+                                onClick={() => { setSelectedInvoice(invoice); setIsViewOpen(true); }} title="View">
+                                <Eye className="w-3.5 h-3.5" />
                               </Button>
-                            )}
-                            <Button variant="ghost" size="sm" onClick={() => handleDelete(invoice.id)}>
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                              <Button variant="ghost" size="icon" className="h-7 w-7"
+                                onClick={() => handleOpenEdit(invoice)} title="Edit">
+                                <Edit className="w-3.5 h-3.5" />
+                              </Button>
+                              {invoice.status !== "paid" && (
+                                <Button variant="ghost" size="icon" className="h-7 w-7" title="Mark as Paid"
+                                  onClick={() => handleMarkPaid(invoice)}>
+                                  <CheckCircle className="w-3.5 h-3.5 text-success" />
+                                </Button>
+                              )}
+                              <Button variant="ghost" size="icon"
+                                className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => setDeleteTarget(invoice)} title="Delete">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {invoices.length > PAGE_SIZE && (
+                <Pagination page={page} total={invoices.length} pageSize={PAGE_SIZE} onChange={setPage} />
+              )}
+            </>
           )}
         </div>
 
         {/* View Modal */}
         <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="w-[calc(100vw-2rem)] max-w-lg rounded-xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Invoice Details</DialogTitle>
               <DialogDescription>{selectedInvoice?.invoiceCode}</DialogDescription>
             </DialogHeader>
             {selectedInvoice && (
-              <div className="grid grid-cols-2 gap-4">
-                {[
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {([
                   ["Invoice Code", selectedInvoice.invoiceCode],
                   ["Client",       selectedInvoice.clientName],
                   ["Period",       selectedInvoice.period || "—"],
@@ -385,24 +493,25 @@ export const BillingPage = () => {
                   ["Total Amount", `KES ${selectedInvoice.amount.toLocaleString()}`],
                   ["Amount Paid",  `KES ${selectedInvoice.amountPaid.toLocaleString()}`],
                   ["Balance",      `KES ${selectedInvoice.balance.toLocaleString()}`],
-                ].map(([label, val]) => (
+                ] as [string, string][]).map(([label, val]) => (
                   <div key={label}>
                     <Label className="text-xs text-muted-foreground">{label}</Label>
                     <p className="text-sm mt-1 font-medium">{val}</p>
                   </div>
                 ))}
                 {selectedInvoice.notes && (
-                  <div className="col-span-2">
+                  <div className="col-span-1 sm:col-span-2">
                     <Label className="text-xs text-muted-foreground">Notes</Label>
                     <p className="text-sm mt-1 p-3 rounded-lg bg-secondary/30">{selectedInvoice.notes}</p>
                   </div>
                 )}
               </div>
             )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsViewOpen(false)}>Close</Button>
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => setIsViewOpen(false)} className="w-full sm:w-auto">Close</Button>
               {selectedInvoice && selectedInvoice.status !== "paid" && (
-                <Button onClick={() => { setIsViewOpen(false); handleMarkPaid(selectedInvoice); }}>
+                <Button className="w-full sm:w-auto"
+                  onClick={() => { setIsViewOpen(false); handleMarkPaid(selectedInvoice); }}>
                   <CheckCircle className="w-4 h-4 mr-2" /> Mark as Paid
                 </Button>
               )}
@@ -412,13 +521,13 @@ export const BillingPage = () => {
 
         {/* Edit Modal */}
         <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="w-[calc(100vw-2rem)] max-w-md rounded-xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Update Invoice</DialogTitle>
               <DialogDescription>{editingInvoice?.invoiceCode} — {editingInvoice?.clientName}</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Status</Label>
                   <Select value={editForm.status} onValueChange={v => setEditForm({ ...editForm, status: v })}>
@@ -437,7 +546,7 @@ export const BillingPage = () => {
                     onChange={e => setEditForm({ ...editForm, amountPaid: parseFloat(e.target.value) })} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Total Amount (KES)</Label>
                   <Input type="number" min={0} value={editForm.totalAmount}
@@ -460,12 +569,21 @@ export const BillingPage = () => {
                   onChange={e => setEditForm({ ...editForm, notes: e.target.value })} />
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
-              <Button onClick={handleUpdate}>Save Changes</Button>
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => setIsEditOpen(false)} className="w-full sm:w-auto">Cancel</Button>
+              <Button onClick={handleUpdate} className="w-full sm:w-auto">Save Changes</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirm Modal */}
+        <ConfirmModal
+          open={deleteTarget !== null}
+          title="Delete Invoice"
+          description={`Are you sure you want to delete invoice "${deleteTarget?.invoiceCode}" for ${deleteTarget?.clientName}? This action cannot be undone.`}
+          onConfirm={() => deleteTarget && handleDelete(deleteTarget.id)}
+          onCancel={() => setDeleteTarget(null)}
+        />
 
       </div>
     </div>
