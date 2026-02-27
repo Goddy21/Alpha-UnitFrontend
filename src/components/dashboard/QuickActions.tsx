@@ -76,20 +76,21 @@ export const QuickActions = () => {
   ];
 
   return (
-    <div className="glass-card rounded-xl border border-border/50 p-5">
-      <h3 className="font-semibold text-foreground mb-4">Quick Actions</h3>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+    <div className="glass-card rounded-xl border border-border/50 p-4 sm:p-5">
+      <h3 className="font-semibold text-sm sm:text-base text-foreground mb-3 sm:mb-4">Quick Actions</h3>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
         {actions.map((action) => {
           const Icon = action.icon;
           return (
             <Button
               key={action.label}
               variant={action.variant}
-              className="h-auto py-3 flex-col gap-2"
+              size="sm"
+              className="h-auto py-2.5 sm:py-3 flex-col gap-1.5 sm:gap-2"
               onClick={action.onClick}
             >
-              <Icon className="w-5 h-5" />
-              <span className="text-xs">{action.label}</span>
+              <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs leading-tight text-center">{action.label}</span>
             </Button>
           );
         })}

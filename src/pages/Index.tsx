@@ -89,19 +89,19 @@ const Index = () => {
 
   return (
     // ⚠️  No <Sidebar /> or <Header /> here — Layout in App.tsx provides them
-    <main className="flex-1 overflow-y-auto p-6">
+    <main className="flex-1 overflow-y-auto p-3 sm:p-6">
       {/* Page Title */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-foreground">
           Operations Dashboard
         </h1>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-xs sm:text-sm mt-1">
           Real-time security operations overview
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <StatCard
           title="Active Sites"
           value={loading ? "—" : stats.activeSites}
@@ -150,8 +150,8 @@ const Index = () => {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-        <div className="xl:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
+        <div className="xl:col-span-2 space-y-4 sm:space-y-6">
           <SiteMap />
           <QuickActions />
         </div>
@@ -161,19 +161,19 @@ const Index = () => {
       </div>
 
       {/* Bottom Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Recent Incidents */}
         <div className="glass-card rounded-xl border border-border/50 overflow-hidden">
-          <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
+          <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-border/50 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-destructive" />
-              <h3 className="font-semibold text-foreground">Recent Incidents</h3>
+              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-destructive" />
+              <h3 className="font-semibold text-sm sm:text-base text-foreground">Recent Incidents</h3>
             </div>
             <span className="text-xs font-medium px-2 py-1 rounded-full bg-destructive/10 text-destructive">
               {loading ? "…" : `${stats.openIncidents} Open`}
             </span>
           </div>
-          <div className="p-4 space-y-3">
+          <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
             {loading ? (
               <p className="text-sm text-muted-foreground text-center py-4">
                 Loading incidents…

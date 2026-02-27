@@ -78,21 +78,21 @@ export const ActivityFeed = () => {
 
   return (
     <div className="glass-card rounded-xl border border-border/50 overflow-hidden">
-      <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
+      <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-border/50 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Clock className="w-5 h-5 text-primary" />
-          <h3 className="font-semibold text-foreground">Live Activity</h3>
+          <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+          <h3 className="font-semibold text-sm sm:text-base text-foreground">Live Activity</h3>
         </div>
-        <span className="text-xs font-medium text-muted-foreground">Real-time updates</span>
+        <span className="text-xs font-medium text-muted-foreground hidden sm:inline">Real-time updates</span>
       </div>
 
       <div className="max-h-[400px] overflow-y-auto">
         {loading && (
-          <div className="p-4 text-sm text-muted-foreground">Loading activities...</div>
+          <div className="p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground">Loading activities...</div>
         )}
 
         {!loading && activities.length === 0 && (
-          <div className="p-4 text-sm text-muted-foreground">No recent activity</div>
+          <div className="p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground">No recent activity</div>
         )}
 
         {activities.map((activity) => {
@@ -103,23 +103,23 @@ export const ActivityFeed = () => {
             <div
               key={activity.id}
               className={cn(
-                "px-5 py-3 border-b border-border/30 hover:bg-secondary/30 transition-colors flex items-start gap-3",
+                "px-3 sm:px-5 py-2.5 sm:py-3 border-b border-border/30 hover:bg-secondary/30 transition-colors flex items-start gap-2 sm:gap-3",
                 activity.isNew && "bg-primary/5"
               )}
             >
-              <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5", config.bg)}>
-                <Icon className={cn("w-4 h-4", config.color)} />
+              <div className={cn("w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5", config.bg)}>
+                <Icon className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4", config.color)} />
               </div>
 
               <div className="flex-1 min-w-0">
-                <p className={cn("text-sm text-foreground", activity.isNew && "font-medium")}>
+                <p className={cn("text-xs sm:text-sm text-foreground", activity.isNew && "font-medium")}>
                   {activity.message}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">{activity.time}</p>
               </div>
 
               {activity.isNew && (
-                <span className="w-2 h-2 rounded-full bg-primary animate-pulse flex-shrink-0 mt-2" />
+                <span className="w-2 h-2 rounded-full bg-primary animate-pulse flex-shrink-0 mt-1.5 sm:mt-2" />
               )}
             </div>
           );
