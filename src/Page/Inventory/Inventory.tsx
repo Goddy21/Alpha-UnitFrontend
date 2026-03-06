@@ -206,7 +206,7 @@ export const EquipmentPage = () => {
     setEditForm({
       name: item.name, category: item.category, serialNumber: item.serialNumber || "",
       quantity: item.quantity, status: item.status, condition: item.condition,
-      assignedToId: item.assignedToId || "", location: item.location,
+      assignedToId: item.assignedToId || "unassigned", location: item.location,
       purchaseDate: item.purchaseDate || "", purchasePrice: item.purchasePrice,
       currentValue: item.currentValue, lastMaintenance: item.lastMaintenance || "",
       nextMaintenance: item.nextMaintenance || "", warrantyExpiry: item.warrantyExpiry || "",
@@ -218,7 +218,11 @@ export const EquipmentPage = () => {
   const handleUpdate = async () => {
     if (!editingItem) return;
     try {
-      await api.put(`/inventory/${editingItem.id}`, editForm);
+      const payload = {
+        ...editForm,
+        assignedToId: editForm.assignedToId === "unassigned" ? null : editForm.assignedToId,
+      };
+      await api.put(`/inventory/${editingItem.id}`, payload);
       setIsEditOpen(false); fetchInventory(); fetchStats();
     } catch (e: any) { alert(e.response?.data?.message || "Failed to update item"); }
   };
@@ -675,7 +679,7 @@ export const EquipmentPage = () => {
                     onValueChange={v => setEditForm({ ...editForm, assignedToId: v })}>
                     <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
                       {personnelOptions.map(p => (
                         <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                       ))}

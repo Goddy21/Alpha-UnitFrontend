@@ -96,6 +96,52 @@ export const ReportsPage = () => {
 
   useEffect(() => { fetchAll(); }, []);
 
+  // ── Export ──────────────────────────────────────────────────────────────────
+  const handleExport = () => {
+    const lines: string[] = [];
+    const now = new Date().toLocaleDateString("en-KE");
+
+    lines.push("ISMS Report Export");
+    lines.push(`Generated: ${now}`);
+    lines.push("");
+    lines.push("KEY PERFORMANCE INDICATORS");
+    lines.push("Metric,Value");
+    lines.push(`Incidents This Month,${kpis?.incidentsThisMonth ?? 0}`);
+    lines.push(`Avg Response Time (min),${kpis?.avgResponseTime ?? 0}`);
+    lines.push(`Guard Attendance (%),${kpis?.guardAttendance ?? 0}`);
+    lines.push(`Total Personnel,${kpis?.totalPersonnel ?? 0}`);
+    lines.push(`Total Sites,${kpis?.totalSites ?? 0}`);
+    lines.push(`Revenue Collected (KES),${kpis?.collected ?? 0}`);
+    lines.push(`Total Revenue (KES),${kpis?.totalRevenue ?? 0}`);
+    lines.push(`Overdue Invoices,${kpis?.overdueInvoices ?? 0}`);
+    lines.push("");
+
+    if (guardPerf.length > 0) {
+      lines.push("GUARD PERFORMANCE");
+      lines.push("Name,Code,Total Shifts,Completed,Attendance %,Incidents Reported");
+      guardPerf.forEach(g => {
+        lines.push(`"${g.name}",${g.guard_code},${g.total_shifts},${g.completed_shifts},${g.attendance_rate},${g.incidents_reported}`);
+      });
+      lines.push("");
+    }
+
+    if (siteCoverage.length > 0) {
+      lines.push("SITE COVERAGE");
+      lines.push("Site,Status,Total Shifts,Active Shifts,Incidents,Cameras");
+      siteCoverage.forEach(s => {
+        lines.push(`"${s.name}",${s.status},${s.total_shifts},${s.active_shifts},${s.incident_count},${s.camera_count}`);
+      });
+    }
+
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = `ISMS_Report_${now.replace(/\//g, "-")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const severityPie = trends.length > 0 ? [
     { name: "Critical", value: trends.reduce((s, t) => s + parseInt(String(t.critical)), 0) },
     { name: "High",     value: trends.reduce((s, t) => s + parseInt(String(t.high)), 0) },
@@ -124,7 +170,7 @@ export const ReportsPage = () => {
             <Button variant="outline" size="icon" title="Refresh" onClick={fetchAll}>
               <RefreshCw className="w-4 h-4" />
             </Button>
-            <Button size="icon" title="Export Report">
+            <Button size="icon" title="Export Report" onClick={handleExport}>
               <Download className="w-4 h-4" />
             </Button>
           </div>
@@ -183,7 +229,7 @@ export const ReportsPage = () => {
                 </div>
                 <p className="text-xs text-muted-foreground">Revenue Collected</p>
                 <p className="text-xl sm:text-3xl font-bold text-foreground mt-0.5 truncate">
-                  KES {(((kpis?.collected ?? 0)) / 1000).toFixed(0)}K
+                  KES {((kpis?.collected ?? 0) / 1000).toFixed(0)}K
                 </p>
                 <p className="text-xs text-muted-foreground mt-1 truncate">
                   of KES {((kpis?.totalRevenue ?? 0) / 1000).toFixed(0)}K total
@@ -245,7 +291,7 @@ export const ReportsPage = () => {
                         />
                       </PieChart>
                     </ResponsiveContainer>
-                    <div className="flex flex-row sm:flex-col gap-3 sm:gap-3 flex-wrap justify-center sm:justify-start">
+                    <div className="flex flex-row sm:flex-col gap-3 flex-wrap justify-center sm:justify-start">
                       {severityPie.map((s, i) => (
                         <div key={s.name} className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: COLORS[i] }} />
@@ -280,7 +326,7 @@ export const ReportsPage = () => {
                       <Tooltip
                         contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
                       />
-                      <Bar dataKey="completed_shifts" name="Shifts Done" fill="hsl(var(--primary))" radius={[0,4,4,0]} />
+                      <Bar dataKey="completed_shifts" name="Shifts Done" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -304,9 +350,9 @@ export const ReportsPage = () => {
                       <Tooltip
                         contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
                       />
-                      <Bar dataKey="total_shifts"   name="Total Shifts" fill="hsl(var(--primary))" radius={[4,4,0,0]} />
-                      <Bar dataKey="incident_count" name="Incidents"    fill="hsl(var(--warning))" radius={[4,4,0,0]} />
-                      <Bar dataKey="camera_count"   name="Cameras"      fill="hsl(var(--success))" radius={[4,4,0,0]} />
+                      <Bar dataKey="total_shifts"   name="Total Shifts" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="incident_count" name="Incidents"    fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="camera_count"   name="Cameras"      fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -323,7 +369,7 @@ export const ReportsPage = () => {
                   <table className="w-full text-sm min-w-[520px]">
                     <thead className="bg-secondary/30 border-b border-border/50">
                       <tr>
-                        {["Guard","Code","Total Shifts","Completed","Attendance","Incidents"].map(h => (
+                        {["Guard", "Code", "Total Shifts", "Completed", "Attendance", "Incidents"].map(h => (
                           <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">
                             {h}
                           </th>
@@ -367,7 +413,7 @@ export const ReportsPage = () => {
                   <table className="w-full text-sm min-w-[520px]">
                     <thead className="bg-secondary/30 border-b border-border/50">
                       <tr>
-                        {["Site","Status","Total Shifts","Active Shifts","Incidents","Cameras"].map(h => (
+                        {["Site", "Status", "Total Shifts", "Active Shifts", "Incidents", "Cameras"].map(h => (
                           <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground whitespace-nowrap">
                             {h}
                           </th>

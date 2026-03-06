@@ -5,6 +5,7 @@ import { sitesService, BackendSite } from "@/services/sites";
 
 interface Site {
   id: string;
+  label: string;
   name: string;
   guards: number;
   incidents: number;
@@ -41,7 +42,8 @@ export const SiteMap = () => {
             const left = `${20 + (index % 3) * 25}%`;
 
             return {
-              id: site.id.slice(0, 1).toUpperCase(),
+              id: site.id,
+              label: site.name.charAt(0).toUpperCase(),
               name: site.name,
               guards: site.activeGuards,
               incidents: site.openIncidents,
@@ -92,7 +94,7 @@ export const SiteMap = () => {
                   statusStyles[site.status]
                 )}
               >
-                {site.id}
+                {site.label}
               </div>
 
               {/* Tooltip - shows on hover on desktop, always visible on touch devices */}

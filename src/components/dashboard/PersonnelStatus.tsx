@@ -73,10 +73,10 @@ export const PersonnelStatus = () => {
 
         // Transform backend data to UI format
         const mapped = data.personnel.map((person: Personnel) => ({
-          name: `${person.first_name} ${person.last_name}`,
-          role: person.role,
+          name: person.name || "Unknown",
+          role: person.role || "—",
           location: person.current_location || "Not Assigned",
-          status: person.status,
+          status: (person.status as GuardProps["status"]) ?? "off-duty",
           checkInTime: person.last_check_in
             ? new Date(person.last_check_in).toLocaleTimeString()
             : "—",

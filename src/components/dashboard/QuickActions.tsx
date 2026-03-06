@@ -16,7 +16,7 @@ export const QuickActions = () => {
   };
 
   const newDeployment = async () => {
-    navigate("/shifts?action=new");
+    navigate("/scheduling?action=new");
   };
 
   const addPersonnel = async () => {

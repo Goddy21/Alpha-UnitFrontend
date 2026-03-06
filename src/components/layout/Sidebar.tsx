@@ -23,6 +23,7 @@ import {
   Settings,
   LogOut,
   X,
+  CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -40,6 +41,7 @@ const navItems: NavItem[] = [
   { icon: Map, label: "Sites", href: "/sites" },
   { icon: UserCog, label: "Personnel", href: "/personnel" },
   { icon: Calendar, label: "Scheduling", href: "/scheduling" },
+  { icon: CalendarDays,    label: "Events",             href: "/events" },
   { icon: AlertTriangle, label: "Incidents", href: "/incidents", badge: 3 },
   { icon: MapPin, label: "Patrol & GPS", href: "/patrol" },
   { icon: Video, label: "CCTV & Alarms", href: "/cctv" },

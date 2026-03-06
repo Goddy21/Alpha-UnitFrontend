@@ -2,8 +2,7 @@ import api from "@/lib/api";
 
 export interface Personnel {
   id: string;
-  first_name: string;
-  last_name: string;
+  name: string;
   role: string;
   status: "on-duty" | "off-duty" | "break" | "alert";
   current_location?: string;
