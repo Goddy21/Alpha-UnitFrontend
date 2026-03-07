@@ -25,6 +25,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import SettingsPage from "./Page/Settings/Settings";
 import SitesPage from "./Page/Sites/sites";
 import EventsPage from "./Page/Events/Events";
+import LeavePage from "./Page/Leave/Leave";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
               <Route path="/drones" element={<DronesPage />} />
               <Route path="/incidents" element={<IncidentsPage />} />
               <Route path="/events" element={<EventsPage />} />
+              <Route path="/leave" element={<LeavePage />} />
               <Route path="/inventory" element={<InventoryPage />} />
               <Route path="/patrol" element={<PatrolPage />} />
               <Route path="/personnel" element={<PersonnelPage />} />
